@@ -613,6 +613,131 @@
     .yield-grid{ grid-template-columns: 1fr; }
     .result-strip{ grid-template-columns: 1fr; }
   }
+
+  /* ================= MOBILE REDESIGN ================= */
+  @media (max-width: 640px){
+    body{ padding: 20px 10px 90px; }
+    .wrap{ max-width: 100%; }
+    h1{ font-size: clamp(21px, 7vw, 28px); }
+    .eyebrow{ font-size: 10px; letter-spacing:0.14em; }
+    header{ margin-bottom: 16px; }
+
+    /* Prevent iOS Safari auto-zoom on input focus (needs >=16px) */
+    input, select, textarea{ font-size:16px !important; }
+
+    /* Tabs: swipeable single row instead of centered wrap */
+    .tabs{
+      justify-content:flex-start;
+      flex-wrap:nowrap;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
+      margin: 16px -10px 14px;
+      padding: 0 10px 4px;
+    }
+    .tabs::-webkit-scrollbar{ display:none; }
+    .tab{ flex:none; white-space:nowrap; padding:10px 16px; font-size:12.5px; }
+
+    .card{ border-radius:14px; margin-bottom:14px; }
+    .sec-head{ padding: 14px 14px 10px; }
+    .sec-head h2{ font-size:16.5px; }
+    .price-table, .line-section, .menu-head, .yield-section, .menu-lib{
+      padding-left:14px; padding-right:14px;
+    }
+
+    /* Ingredient price rows: stacked card instead of squeezed 6-col grid */
+    .price-row{
+      grid-template-columns: 1fr 1fr 30px;
+      grid-template-areas:
+        "name name name"
+        "price qty unit"
+        "cost cost del";
+      row-gap:8px; column-gap:8px;
+      padding: 12px 10px;
+      border: 1px solid var(--card-line);
+      border-radius: 10px;
+      margin-bottom: 8px;
+      font-size:13.5px;
+    }
+    .price-row.head-row{
+      background: var(--surface);
+      font-size:10px;
+    }
+    .price-row > *:nth-child(1){ grid-area:name; }
+    .price-row > *:nth-child(2){ grid-area:price; }
+    .price-row > *:nth-child(3){ grid-area:qty; }
+    .price-row > *:nth-child(4){ grid-area:unit; }
+    .price-row > *:nth-child(5){ grid-area:cost; justify-self:end; align-self:center; font-size:13.5px; }
+    .price-row > *:nth-child(6){ grid-area:del; justify-self:end; align-self:center; }
+    .price-row input, .price-row select{ font-size:15px !important; padding:8px; }
+
+    /* Menu ingredient lines: same stacked treatment */
+    .line-row{
+      grid-template-columns: 1fr 1fr 30px;
+      grid-template-areas:
+        "name name name"
+        "amt unit cost"
+        "del del del";
+      row-gap:8px; column-gap:8px;
+      padding: 12px 10px;
+      border: 1px solid var(--card-line);
+      border-radius: 10px;
+      margin-bottom: 8px;
+    }
+    .line-row.head-row{ background: var(--surface); font-size:10px; }
+    .line-row > *:nth-child(1){ grid-area:name; }
+    .line-row > *:nth-child(2){ grid-area:amt; }
+    .line-row > *:nth-child(3){ grid-area:unit; align-self:center; }
+    .line-row > *:nth-child(4){ grid-area:cost; align-self:center; }
+    .line-row > *:nth-child(5){ grid-area:del; justify-self:end; align-self:center; }
+    .line-row input{ font-size:15px !important; padding:8px; }
+
+    .add-row, .add-line-row{ flex-direction:column; }
+    .add-row > *, .add-line-row > *{ flex:none !important; width:100%; }
+    .add-btn{ padding:11px 18px; }
+
+    .yield-grid{ grid-template-columns: 1fr; gap:12px; }
+    .result-strip{ grid-template-columns: 1fr; gap:10px; }
+    .result-box{ padding:12px 14px; }
+    .result-box .value{ font-size:19px; }
+    .result-box.highlight .value{ font-size:22px; }
+
+    .summary-cols{ grid-template-columns: 1fr; }
+
+    .lib-row{
+      grid-template-columns: 1fr auto;
+      grid-template-areas: "name name" "cost cost" "load del";
+      row-gap:6px;
+      padding:10px; border:1px solid var(--card-line); border-radius:10px; margin-bottom:8px;
+    }
+    .lib-row .lib-name{ grid-area:name; font-weight:600; }
+    .lib-row .lib-cost{ grid-area:cost; text-align:left; }
+    .lib-row .lib-btn:not(.danger){ grid-area:load; }
+    .lib-row .lib-btn.danger{ grid-area:del; }
+
+    .bd-row{ grid-template-columns: 14px 1fr auto auto; font-size:12.5px; gap:6px; }
+    .stock-row{ grid-template-columns: 1fr 84px; }
+
+    .pos-grid{ grid-template-columns: repeat(auto-fill, minmax(135px,1fr)); gap:10px; }
+    .pos-channel-btn{ padding:12px 6px; font-size:13px; }
+
+    .dash-grid{ grid-template-columns: repeat(2, 1fr); gap:10px; }
+    .dash-card{ padding:12px 10px; }
+    .dash-card .value{ font-size:17px; }
+
+    .cart-line{ grid-template-columns: 1fr auto 22px; row-gap:4px; }
+
+    .sync-bar{ padding: 0 2px; }
+    .sync-row{ flex-direction:column; }
+    .sync-row input{ flex:none; width:100%; }
+    .sync-actions{ justify-content:space-between; }
+    .sync-status{ margin-left:0; width:100%; margin-top:4px; }
+
+    .chip-row{ overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; }
+    .chip{ flex:none; }
+
+    .menu-head input#menuName{ font-size:20px; }
+  }
 </style>
 </head>
 <body>
@@ -1866,6 +1991,7 @@
   syncToggle.addEventListener('click', () => syncPanel.classList.toggle('open'));
 
   let suppressAutoSync = false;
+  let hasLoadedThisSession = false;
 
   try {
     const savedToken = localStorage.getItem('icecream_gh_token');
@@ -1895,10 +2021,36 @@
     suppressAutoSync = false;
   }
 
+  // ---------- local backup (always-on safety net, independent of Gist) ----------
+  function saveLocalBackup(){
+    try { localStorage.setItem('icecream_local_backup', JSON.stringify(collectAppData())); } catch(e){}
+  }
+  function restoreLocalBackupIfAny(){
+    try {
+      const raw = localStorage.getItem('icecream_local_backup');
+      if (raw){
+        const parsed = JSON.parse(raw);
+        applyAppData(parsed);
+        if (parsed.menus && Object.keys(parsed.menus).length > 0){
+          setStatus('กู้ข้อมูลจากสำเนาที่เก็บไว้ในเครื่องนี้แล้ว (' + Object.keys(parsed.menus).length + ' เมนู) — ยังไม่ได้ซิงค์กับ Gist', '');
+        }
+        return true;
+      }
+    } catch(e){ /* ignore */ }
+    return false;
+  }
+  restoreLocalBackupIfAny();
+
   async function saveToGist(isAuto){
     const token = tokenInput.value.trim();
     if (!token){ if (!isAuto) setStatus('กรุณาใส่ GitHub Token ก่อน', 'err'); return; }
     let gistId = gistIdInput.value.trim();
+    saveLocalBackup();
+    if (!gistId){
+      if (isAuto) return; // never silently create a new gist from auto-sync
+      const ok = confirm('ยังไม่มี Gist ID อยู่ในช่อง — ระบบจะสร้าง Gist ใหม่ทั้งหมด (ถ้าเคยมีข้อมูลอยู่ใน Gist อื่นมาก่อน จะไม่ถูกนำมาใช้ และจะกลายเป็นคนละชุดข้อมูลกัน) ต้องการสร้าง Gist ใหม่หรือไม่?');
+      if (!ok){ setStatus('ยกเลิกการบันทึก — ใส่ Gist ID เดิมก่อนถ้ามีอยู่แล้ว', 'err'); return; }
+    }
     const payload = { files: { [GIST_FILENAME]: { content: JSON.stringify(collectAppData(), null, 2) } } };
     setStatus(isAuto ? 'ออโต้ซิงค์: กำลังบันทึก...' : 'กำลังบันทึก...');
     try {
@@ -1929,6 +2081,7 @@
         localStorage.setItem('icecream_gh_token', token);
         localStorage.setItem('icecream_gist_id', gistId);
       } catch(e){}
+      hasLoadedThisSession = true; // this device's data is now known to match the gist
       setStatus((isAuto ? 'ออโต้ซิงค์: บันทึกอัตโนมัติสำเร็จ ' : 'บันทึกสำเร็จ ') + new Date().toLocaleTimeString('th-TH'), 'ok');
     } catch (err){
       setStatus((isAuto ? 'ออโต้ซิงค์ล้มเหลว: ' : 'บันทึกไม่สำเร็จ: ') + err.message, 'err');
@@ -1953,6 +2106,8 @@
       if (!file){ throw new Error('ไม่พบไฟล์ข้อมูลใน Gist นี้'); }
       const parsed = JSON.parse(file.content);
       applyAppData(parsed);
+      saveLocalBackup();
+      hasLoadedThisSession = true;
       try {
         localStorage.setItem('icecream_gh_token', token);
         localStorage.setItem('icecream_gist_id', gistId);
@@ -1969,14 +2124,33 @@
   // ---------- auto-sync (debounced) ----------
   let autoSyncTimer = null;
   function scheduleAutoSync(){
+    saveLocalBackup(); // always keep a same-device safety copy, regardless of Gist state
     if (suppressAutoSync) return;
     if (!autoSyncToggle.checked) return;
     if (!tokenInput.value.trim()) return;
+    const gistId = gistIdInput.value.trim();
+    if (!gistId){
+      setStatus('ออโต้ซิงค์ต้องมี Gist ID ก่อน — ปิดออโต้ซิงค์ชั่วคราวแล้ว กด "บันทึกขึ้น Gist" ด้วยตนเองครั้งแรกก่อน', 'err');
+      autoSyncToggle.checked = false;
+      try { localStorage.setItem('icecream_autosync', '0'); } catch(e){}
+      return;
+    }
+    if (!hasLoadedThisSession){
+      setStatus('ยังไม่ได้โหลดข้อมูลล่าสุดจาก Gist ในเครื่องนี้ — ปิดออโต้ซิงค์ชั่วคราวแล้ว กด "โหลดจาก Gist" ก่อน เพื่อกันข้อมูลเดิมถูกทับ', 'err');
+      autoSyncToggle.checked = false;
+      try { localStorage.setItem('icecream_autosync', '0'); } catch(e){}
+      return;
+    }
     clearTimeout(autoSyncTimer);
     setStatus('ออโต้ซิงค์: รอบันทึกใน 2-3 วินาที...');
     autoSyncTimer = setTimeout(() => saveToGist(true), 2500);
   }
   autoSyncToggle.addEventListener('change', () => {
+    if (autoSyncToggle.checked && (!gistIdInput.value.trim() || !hasLoadedThisSession)){
+      setStatus('กรุณากด "โหลดจาก Gist" ให้สำเร็จอย่างน้อย 1 ครั้งในเครื่องนี้ก่อน ถึงจะเปิดออโต้ซิงค์ได้', 'err');
+      autoSyncToggle.checked = false;
+      return;
+    }
     try { localStorage.setItem('icecream_autosync', autoSyncToggle.checked ? '1' : '0'); } catch(e){}
     if (autoSyncToggle.checked) scheduleAutoSync();
   });
