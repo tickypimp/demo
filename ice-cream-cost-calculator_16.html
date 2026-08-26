@@ -1,0 +1,2358 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ตัวคำนวณต้นทุนไอศกรีม</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #1c2621;
+    --card: #f6f1e4;
+    --card-line: #e3dac4;
+    --ink: #2a241c;
+    --ink-soft: #6b6252;
+    --spice: #bf6b34;
+    --spice-deep: #9c5527;
+    --sage: #8fa791;
+    --sage-deep: #5f7a68;
+    --danger: #a24435;
+    --frost: #6f93a8;
+    --frost-deep: #46687b;
+    --surface: rgba(255,255,255,0.55);
+    --pattern: rgba(0,0,0,0.015);
+    --shadow: 0 20px 50px rgba(0,0,0,0.35);
+    --shadow-soft: 0 14px 34px rgba(0,0,0,0.3);
+  }
+  body.dark{
+    --card: #221c16;
+    --card-line: #3c332a;
+    --ink: #f1e9d8;
+    --ink-soft: #b6a98f;
+    --spice: #e88f52;
+    --spice-deep: #f4ab73;
+    --sage: #9dc3a2;
+    --sage-deep: #7ea583;
+    --frost: #8db8ce;
+    --frost-deep: #b7d7e6;
+    --danger: #e3897b;
+    --surface: rgba(255,255,255,0.06);
+    --pattern: rgba(255,255,255,0.025);
+    --shadow: 0 20px 50px rgba(0,0,0,0.55);
+    --shadow-soft: 0 14px 34px rgba(0,0,0,0.5);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 15% 0%, rgba(143,167,145,0.10), transparent 45%),
+      radial-gradient(circle at 85% 100%, rgba(111,147,168,0.12), transparent 45%),
+      var(--bg);
+    min-height:100vh;
+    font-family:'Sarabun', sans-serif;
+    color: var(--ink);
+    padding: 40px 20px 80px;
+  }
+  .wrap{max-width: 860px; margin: 0 auto;}
+
+  header{ text-align:center; margin-bottom: 26px; color: var(--card); position: relative; }
+  .theme-toggle{
+    position: absolute; top: 0; right: 0;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 1px solid rgba(246,241,228,0.3);
+    background: rgba(246,241,228,0.06);
+    color: var(--card);
+    font-size: 17px;
+    cursor: pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition: all .15s ease;
+  }
+  .theme-toggle:hover{ background: rgba(246,241,228,0.16); }
+  @media (max-width: 500px){
+    .theme-toggle{ position: static; margin: 0 auto 10px; }
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--frost); margin-bottom: 10px;
+  }
+  h1{
+    font-family:'Fraunces', serif; font-weight: 600;
+    font-size: clamp(26px, 4.6vw, 38px); margin: 0; letter-spacing: -0.01em;
+  }
+
+  .tabs{
+    display:flex; justify-content:center; gap:8px; margin: 22px 0 18px;
+  }
+  .tab{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 13px; letter-spacing:0.04em;
+    padding: 9px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(246,241,228,0.25);
+    background: transparent;
+    color: rgba(246,241,228,0.7);
+    cursor:pointer;
+    transition: all .15s ease;
+  }
+  .tab.active{ background: var(--card); color: var(--ink); border-color: var(--card); font-weight:600; }
+  .tab:hover:not(.active){ border-color: var(--card); color: var(--card); }
+
+  .card{
+    background: var(--card);
+    border: 1px solid var(--card-line);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    overflow:hidden;
+    margin-bottom: 20px;
+  }
+  .panel{ display:none; }
+  .panel.active{ display:block; }
+
+  .sec-head{
+    padding: 22px 26px 14px;
+    border-bottom: 1px solid var(--card-line);
+    display:flex; align-items:baseline; justify-content:space-between;
+  }
+  .sec-head h2{
+    font-family:'Fraunces', serif; font-size: 20px; font-weight:600; margin:0;
+  }
+  .sec-sub{
+    font-family:'JetBrains Mono', monospace; font-size:12px; color: var(--ink-soft);
+  }
+
+  /* Price book table */
+  .price-table{ padding: 14px 26px 20px; }
+  .price-row{
+    display:grid;
+    grid-template-columns: 1.6fr 0.9fr 0.7fr 0.9fr 1.1fr 28px;
+    gap: 10px; align-items:center;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--card-line);
+  }
+  .price-row.head-row{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing:0.06em; text-transform:uppercase;
+    color: var(--ink-soft); border-bottom: 1px solid var(--card-line);
+  }
+  .price-row:last-of-type{ border-bottom:none; }
+
+  input, select{
+    font-family:'Sarabun', sans-serif;
+    font-size: 14px; color: var(--ink);
+    border: 1px solid var(--card-line);
+    border-radius: 8px;
+    padding: 7px 10px;
+    background: var(--surface);
+    outline:none;
+    width:100%;
+  }
+  input:focus, select:focus{ border-color: var(--frost); }
+  input.mono, select.mono{ font-family:'JetBrains Mono', monospace; }
+
+  .price-row input, .price-row select{ padding:6px 8px; font-size:13.5px; }
+
+  .unit-cost{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:600; font-size: 13px;
+    color: var(--frost-deep);
+    text-align:right;
+    white-space: nowrap;
+  }
+
+  .del-btn{
+    border:none; background:none; cursor:pointer;
+    color: #c7bda1; font-size: 17px;
+    width: 26px; height:26px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:6px;
+    transition: all .15s ease;
+  }
+  .del-btn:hover{ color: var(--danger); background: rgba(162,68,53,0.08); }
+
+  .add-row{ display:flex; gap:8px; margin-top: 12px; flex-wrap:wrap; }
+  .add-row .f-name{ flex: 1 1 180px; }
+  .add-row .f-price{ flex: 0 1 100px; }
+  .add-row .f-qty{ flex: 0 1 90px; }
+  .add-row .f-unit{ flex: 0 1 110px; }
+  .add-btn{
+    border:none; background: var(--frost-deep); color: var(--card);
+    border-radius: 8px; padding: 0 18px;
+    font-family:'Sarabun', sans-serif; font-weight:600; font-size: 14px;
+    cursor:pointer; transition: background .15s ease;
+  }
+  .add-btn:hover{ background: #35505f; }
+  .hint{
+    font-family:'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-soft);
+    margin-top: 8px;
+  }
+  table.ing-table{ width:100%; border-collapse:collapse; }
+  table.ing-table th{
+    font-family:'JetBrains Mono', monospace; font-size:10.5px; letter-spacing:0.05em; text-transform:uppercase;
+    color: var(--ink-soft); text-align:left; padding: 6px 8px; border-bottom:1px solid var(--card-line);
+    white-space:nowrap;
+  }
+  table.ing-table td{
+    font-size:13.5px; padding: 9px 8px; border-bottom: 1px dashed var(--card-line); white-space:nowrap;
+  }
+  table.ing-table td.name-cell{ white-space:normal; font-weight:600; }
+  table.ing-table td.net-cell{ font-family:'JetBrains Mono', monospace; font-weight:700; color: var(--sage-deep); text-align:right; }
+  table.ing-table td.num-cell{ font-family:'JetBrains Mono', monospace; color: var(--spice-deep); text-align:right; }
+  table.ing-table tbody tr:last-child td{ border-bottom:none; }
+
+  .summary-card{
+    border: 1px solid var(--card-line); border-radius: 14px;
+    padding: 16px 18px; margin-bottom: 14px; background: var(--surface);
+  }
+  .summary-card-head{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom: 12px;
+  }
+  .summary-card-head .name{ font-family:'Fraunces', serif; font-weight:600; font-size:17px; }
+  .summary-cols{ display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .summary-col{
+    border: 1px dashed var(--card-line); border-radius: 10px; padding: 12px 14px;
+  }
+  .summary-col-title{
+    font-family:'JetBrains Mono', monospace; font-size:11.5px; letter-spacing:0.05em; text-transform:uppercase;
+    color: var(--ink-soft); margin-bottom: 10px;
+  }
+  .summary-row{
+    display:flex; justify-content:space-between; align-items:center;
+    font-size: 13.5px; padding: 5px 0;
+  }
+  .summary-row b{ font-family:'JetBrains Mono', monospace; }
+  .summary-row.profit-row{ margin-top:6px; padding-top:8px; border-top: 1px solid var(--card-line); font-size:14.5px; }
+  .summary-price-input{
+    width:100%; border:1px solid var(--card-line); border-radius:7px; padding:7px 9px;
+    font-family:'JetBrains Mono', monospace; font-size:14px; background: var(--card); color: var(--ink);
+    outline:none; margin: 6px 0;
+  }
+  .summary-price-input:focus{ border-color: var(--frost); }
+  .summary-select{
+    width:100%; border:1px solid var(--card-line); border-radius:7px; padding:6px 8px;
+    font-family:'Sarabun', sans-serif; font-size:13px; background: var(--card); color: var(--ink);
+    outline:none; margin-bottom:6px;
+  }
+  .summary-checkbox-row{ display:flex; align-items:center; gap:7px; margin: 4px 0 8px; }
+  .summary-checkbox-row input[type="checkbox"]{ width:15px; height:15px; accent-color: var(--spice-deep); cursor:pointer; }
+  .summary-checkbox-row label{ font-size:12.5px; color: var(--ink-soft); cursor:pointer; }
+  @media (max-width: 620px){
+    .summary-cols{ grid-template-columns: 1fr; }
+  }
+
+  /* ---------- POS ---------- */
+  .pos-channel-row{ display:flex; gap:8px; margin-bottom:16px; }
+  .pos-channel-btn{
+    flex:1; border:1px solid var(--card-line); background: var(--surface); border-radius:10px;
+    padding:10px; font-family:'Sarabun', sans-serif; font-weight:600; font-size:14px; cursor:pointer; color: var(--ink);
+  }
+  .pos-channel-btn.active{ background: var(--spice); color:#241a10; border-color: var(--spice); }
+
+  .pos-stock-panel{
+    border:1px solid var(--card-line); border-radius:12px; padding:14px 16px; margin-bottom:16px; background: var(--surface);
+  }
+  .stock-row{
+    display:grid; grid-template-columns: 1fr 120px; gap:10px; align-items:center;
+    padding:7px 0; border-bottom:1px dashed var(--card-line);
+  }
+  .stock-row:last-child{ border-bottom:none; }
+  .stock-row input{
+    border:1px solid var(--card-line); border-radius:7px; padding:6px 9px;
+    font-family:'JetBrains Mono', monospace; font-size:13px; background: var(--card); color:var(--ink); outline:none; text-align:right;
+  }
+
+  .pos-grid{
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap:12px; margin-bottom: 130px; /* room for sticky cart on mobile */
+  }
+  .pos-product{
+    border:1px solid var(--card-line); border-radius:14px; padding:14px; background: var(--surface);
+  }
+  .pos-product .pname{ font-family:'Fraunces', serif; font-weight:600; font-size:15px; margin-bottom:4px; }
+  .pos-product .pstock{ font-family:'JetBrains Mono', monospace; font-size:11px; color: var(--ink-soft); margin-bottom:10px; }
+  .pos-product .pstock.low{ color: var(--danger); }
+  .pos-unit-btn{
+    width:100%; display:flex; justify-content:space-between; align-items:center;
+    border:1px solid var(--card-line); background: var(--card); border-radius:8px;
+    padding:8px 10px; margin-bottom:6px; cursor:pointer; font-family:'Sarabun', sans-serif; font-size:13px; color: var(--ink);
+  }
+  .pos-unit-btn:hover{ border-color: var(--spice); }
+  .pos-unit-btn:disabled{ opacity:0.4; cursor:not-allowed; }
+  .pos-unit-btn b{ font-family:'JetBrains Mono', monospace; color: var(--spice-deep); }
+
+  .pos-cart{
+    position: sticky; bottom: 0; left:0; right:0;
+    background: var(--card); border-top: 2px solid var(--card-line);
+    border-radius: 16px 16px 0 0; box-shadow: var(--shadow);
+    padding: 14px 20px 18px; margin-top: -110px;
+    max-height: 46vh; overflow-y:auto; z-index: 5;
+  }
+  .pos-cart-head{ font-family:'Fraunces', serif; font-weight:600; font-size:15px; margin-bottom:8px; }
+  .cart-line{
+    display:grid; grid-template-columns: 1fr auto auto 26px; gap:8px; align-items:center;
+    padding:6px 0; border-bottom:1px dashed var(--card-line); font-size:13px;
+  }
+  .cart-line .cl-name{ font-size:13px; }
+  .cart-line .cl-unit{ font-family:'JetBrains Mono', monospace; font-size:11px; color: var(--ink-soft); }
+  .qty-stepper{ display:flex; align-items:center; gap:6px; }
+  .qty-stepper button{
+    width:24px; height:24px; border-radius:50%; border:1px solid var(--card-line); background:var(--surface);
+    cursor:pointer; font-size:14px; line-height:1;
+  }
+  .qty-stepper span{ font-family:'JetBrains Mono', monospace; min-width:18px; text-align:center; font-size:13px; }
+  .cart-line .cl-total{ font-family:'JetBrains Mono', monospace; font-weight:600; color: var(--spice-deep); white-space:nowrap; }
+  .pos-cart-total{
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 10px 0; margin-top:6px; border-top:1px solid var(--card-line);
+    font-family:'Fraunces', serif; font-size:17px; font-weight:600;
+  }
+  .pos-cart-total b{ font-family:'JetBrains Mono', monospace; color: var(--spice-deep); }
+
+  /* ---------- Dashboard ---------- */
+  .dash-filter-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .dash-filter-btn{
+    border:1px solid var(--card-line); background: var(--surface); border-radius:999px;
+    padding:7px 16px; font-family:'Sarabun', sans-serif; font-size:13px; cursor:pointer; color: var(--ink);
+  }
+  .dash-filter-btn.active{ background: var(--spice); color:#241a10; border-color: var(--spice); }
+
+  .dash-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap:12px; margin-bottom:22px; }
+  .dash-card{
+    border:1px solid var(--card-line); border-radius:12px; padding:14px 16px; background: var(--surface); text-align:center;
+  }
+  .dash-card .label{ font-family:'JetBrains Mono', monospace; font-size:10.5px; letter-spacing:0.05em; text-transform:uppercase; color: var(--ink-soft); margin-bottom:6px; }
+  .dash-card .value{ font-family:'JetBrains Mono', monospace; font-weight:700; font-size:20px; color: var(--spice-deep); }
+
+  .rank-row{ margin-bottom:10px; }
+  .rank-row .rank-label{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; }
+  .rank-row .rank-label b{ font-family:'JetBrains Mono', monospace; color: var(--spice-deep); }
+  .rank-track{ height:10px; border-radius:6px; background: var(--surface); border:1px solid var(--card-line); overflow:hidden; }
+  .rank-fill{ height:100%; background: var(--spice); border-radius:6px; }
+
+  .hour-grid{ display:flex; align-items:flex-end; gap:3px; height:90px; margin-bottom:6px; }
+  .hour-bar{ flex:1; background: var(--sage); border-radius:3px 3px 0 0; min-height:2px; position:relative; }
+  .hour-bar.peak{ background: var(--spice); }
+  .hour-labels{ display:flex; gap:3px; font-family:'JetBrains Mono', monospace; font-size:8.5px; color: var(--ink-soft); }
+  .hour-labels span{ flex:1; text-align:center; }
+
+  .recent-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 0; border-bottom:1px dashed var(--card-line); font-size:13px;
+  }
+  .recent-row .rt-items{ color: var(--ink-soft); font-size:12px; }
+  .recent-row .rt-total{ font-family:'JetBrains Mono', monospace; font-weight:600; color: var(--spice-deep); }
+
+  @media (max-width: 620px){
+    .pos-grid{ grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  }
+  .subtotal-row{
+    display:flex; justify-content:flex-end;
+    font-family:'JetBrains Mono', monospace; font-weight:600; font-size:13.5px;
+    color: var(--spice-deep);
+    padding: 8px 0 2px;
+    border-top: 1px solid var(--card-line);
+    margin-top: 4px;
+  }
+  .checkbox-row{
+    display:flex; align-items:center; gap:8px;
+    margin-top: 8px;
+  }
+  .checkbox-row input[type="checkbox"]{
+    width: 17px; height: 17px; accent-color: var(--spice-deep);
+    cursor:pointer;
+  }
+  .checkbox-row label{
+    font-family:'Sarabun', sans-serif; font-size: 13.5px; color: var(--ink); cursor:pointer;
+  }
+  .warn-banner{
+    display:none;
+    background: rgba(191,107,52,0.12);
+    border: 1px solid var(--spice);
+    color: var(--spice-deep);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    line-height:1.5;
+    margin-bottom: 12px;
+  }
+  .warn-banner.show{ display:block; }
+  .bd-row.warn .bd-val, .bd-row.warn .bd-pct{ color: var(--spice-deep); }
+
+  /* Menu builder */
+  .menu-head{ padding: 22px 26px 10px; border-bottom: 1px solid var(--card-line); }
+  .menu-head input#menuName{
+    width:100%; border:none; background:transparent;
+    font-family:'Fraunces', serif; font-weight:600; font-size:24px;
+    color: var(--ink); padding:0; outline:none;
+  }
+  .menu-head input#menuName::placeholder{ color:#b6ac93; }
+
+  .line-section{ padding: 18px 26px 6px; }
+  .line-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .line-header h2{
+    font-family:'Fraunces', serif; font-size: 15px; letter-spacing:0.04em; text-transform:uppercase;
+    color: var(--ink-soft); margin:0; font-weight:600;
+  }
+
+  .line-row{
+    display:grid;
+    grid-template-columns: 1.5fr 0.8fr 0.9fr 0.9fr 28px;
+    gap: 10px; align-items:center;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--card-line);
+  }
+  .line-row.head-row{
+    font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:0.06em;
+    text-transform:uppercase; color: var(--ink-soft); border-bottom:1px solid var(--card-line);
+  }
+  .line-row:last-of-type{ border-bottom:none; }
+  .line-cost{
+    font-family:'JetBrains Mono', monospace; font-weight:600; font-size:14px;
+    color: var(--spice-deep); text-align:right;
+  }
+
+  .add-line-row{ display:flex; gap:8px; margin: 12px 0 6px; flex-wrap:wrap; }
+  .add-line-row select.f-ing{ flex: 1 1 180px; }
+  .add-line-row .f-amt{ flex: 0 1 90px; }
+  .add-line-row .f-unit2{ flex: 0 1 100px; }
+
+  /* Yield / pint conversion */
+  .yield-section{
+    padding: 20px 26px 24px;
+    background: repeating-linear-gradient(135deg, var(--pattern) 0px, var(--pattern) 2px, transparent 2px, transparent 14px);
+    border-top: 1px solid var(--card-line);
+  }
+  .yield-grid{
+    display:grid; grid-template-columns: repeat(2, 1fr);
+    gap: 14px; margin-bottom: 16px;
+  }
+  .yield-field label{
+    display:block; font-family:'JetBrains Mono', monospace; font-size:11px;
+    letter-spacing:0.06em; text-transform:uppercase; color: var(--ink-soft); margin-bottom:5px;
+  }
+
+  .result-strip{
+    display:grid; grid-template-columns: repeat(3, 1fr);
+    gap: 14px; margin-top: 6px;
+  }
+  .result-box{
+    background: var(--surface);
+    border: 1px solid var(--card-line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    text-align:center;
+  }
+  .result-box .label{
+    font-family:'JetBrains Mono', monospace; font-size:10.5px; letter-spacing:0.06em;
+    text-transform:uppercase; color: var(--ink-soft); margin-bottom:6px;
+  }
+  .result-box .value{
+    font-family:'JetBrains Mono', monospace; font-weight:700; font-size: 22px;
+    color: var(--spice-deep);
+  }
+  .result-box.highlight{
+    background: var(--spice-deep); border-color: var(--spice-deep);
+  }
+  .result-box.highlight .label{ color: rgba(246,241,228,0.75); }
+  .result-box.highlight .value{ color: var(--card); font-size: 26px; }
+
+  /* sync bar */
+  .sync-bar{
+    max-width: 860px; margin: 0 auto 18px;
+  }
+  .sync-toggle{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%;
+    border: 1px dashed rgba(246,241,228,0.35);
+    background: rgba(246,241,228,0.06);
+    color: rgba(246,241,228,0.85);
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-family:'JetBrains Mono', monospace; font-size:12.5px; letter-spacing:0.04em;
+    cursor:pointer;
+  }
+  .sync-toggle:hover{ background: rgba(246,241,228,0.1); }
+  .sync-panel{
+    display:none;
+    margin-top: 10px;
+    background: var(--card);
+    border: 1px solid var(--card-line);
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: var(--shadow-soft);
+  }
+  .sync-panel.open{ display:block; }
+  .sync-row{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 10px; }
+  .sync-row input{ flex: 1 1 220px; }
+  .sync-actions{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .sync-btn{
+    border:none; border-radius:8px; padding: 9px 16px;
+    font-family:'Sarabun', sans-serif; font-weight:600; font-size:13.5px;
+    cursor:pointer; color: var(--card);
+  }
+  .sync-btn.save{ background: var(--frost-deep); }
+  .sync-btn.save:hover{ background:#35505f; }
+  .sync-btn.load{ background: var(--sage-deep); }
+  .sync-btn.load:hover{ background:#4b6356; }
+  .sync-status{
+    font-family:'JetBrains Mono', monospace; font-size:12px; color: var(--ink-soft);
+    margin-left: auto;
+  }
+  .sync-status.err{ color: var(--danger); }
+  .sync-status.ok{ color: var(--sage-deep); }
+  .chip-row{ display:flex; gap:6px; flex-wrap:wrap; margin: 0 0 16px; }
+  .chip{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12px; letter-spacing:0.02em;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--card-line);
+    background: transparent;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .chip.active{ background: var(--spice); border-color: var(--spice); color: #fff; }
+  .chip:hover:not(.active){ border-color: var(--spice); color: var(--spice-deep); }
+  .recipe-card{
+    border: 1px solid var(--card-line);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    background: var(--surface);
+  }
+  .recipe-card-head{
+    display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+    margin-bottom: 10px; flex-wrap: wrap;
+  }
+  .recipe-card-head h3{ margin:0; font-family:'Fraunces', serif; font-weight:600; font-size: 18px; }
+  .recipe-store-chip{
+    font-family:'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.05em; font-weight:700; color: var(--spice-deep);
+  }
+  .sync-hint{
+    font-family:'JetBrains Mono', monospace; font-size:11px; color: var(--ink-soft);
+    margin-top: 10px; line-height:1.6;
+  }
+
+  /* menu library */
+  .menu-lib{ padding: 4px 26px 22px; border-top: 1px solid var(--card-line); }
+  .menu-lib h2{
+    font-family:'Fraunces', serif; font-size: 15px; letter-spacing:0.04em; text-transform:uppercase;
+    color: var(--ink-soft); margin: 16px 0 10px; font-weight:600;
+  }
+  .lib-row{
+    display:grid; grid-template-columns: 1fr 110px auto auto;
+    gap:10px; align-items:center;
+    padding: 9px 0; border-bottom: 1px dashed var(--card-line);
+  }
+  .lib-row:last-of-type{ border-bottom:none; }
+  .lib-name{ font-size:14px; }
+  .lib-cost{ font-family:'JetBrains Mono', monospace; font-size:13px; color: var(--spice-deep); text-align:right; }
+  .lib-btn{
+    border:1px solid var(--card-line); background: transparent; border-radius:7px;
+    padding: 5px 12px; font-family:'Sarabun', sans-serif; font-size:12.5px; cursor:pointer;
+  }
+  .lib-btn:hover{ border-color: var(--frost); color: var(--frost-deep); }
+  .lib-btn.danger:hover{ border-color: var(--danger); color: var(--danger); }
+  .save-menu-row{ display:flex; justify-content:flex-end; margin-top:4px; }
+  .save-menu-btn{
+    border:none; background: var(--spice); color: var(--card); border-radius:8px;
+    padding: 9px 18px; font-family:'Sarabun', sans-serif; font-weight:600; font-size:13.5px; cursor:pointer;
+  }
+  .save-menu-btn:hover{ background: var(--spice-deep); }
+
+  .breakdown-bar{
+    display:flex; width:100%; height: 26px;
+    border-radius: 8px; overflow:hidden;
+    border: 1px solid var(--card-line);
+    background: var(--surface);
+  }
+  .bar-seg{ height:100%; min-width:0; transition: width .2s ease; }
+  .bar-seg.material{ background: var(--spice); }
+  .bar-seg.packaging{ background: var(--frost); }
+  .bar-seg.commission{ background: var(--danger); }
+  .bar-seg.profit{ background: var(--sage-deep); }
+
+  .breakdown-list{ margin-top: 12px; }
+  .bd-row{
+    display:grid; grid-template-columns: 16px 1fr 100px 70px;
+    gap: 10px; align-items:center;
+    padding: 7px 0;
+    border-bottom: 1px dashed var(--card-line);
+    font-size: 13.5px;
+  }
+  .bd-row:last-of-type{ border-bottom:none; }
+  .bd-dot{ width:10px; height:10px; border-radius:50%; }
+  .bd-dot.material{ background: var(--spice); }
+  .bd-dot.packaging{ background: var(--frost); }
+  .bd-dot.commission{ background: var(--danger); }
+  .bd-dot.profit{ background: var(--sage-deep); }
+  .bd-val{ font-family:'JetBrains Mono', monospace; text-align:right; }
+  .bd-pct{ font-family:'JetBrains Mono', monospace; text-align:right; color: var(--ink-soft); }
+
+  footer{ text-align:center; margin-top: 22px; }
+  .print-btn{
+    border: 1px solid var(--sage); background: transparent; color: var(--card);
+    padding: 9px 20px; border-radius: 999px;
+    font-family:'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.06em;
+    cursor:pointer; transition: all .15s ease;
+  }
+  .print-btn:hover{ background: var(--sage); color: var(--bg); }
+
+  @media print{
+    body{ background:white; padding:0; }
+    header, footer, .tabs, .del-btn, .add-row, .add-line-row{ display:none !important; }
+    .card{ box-shadow:none; border:none; }
+  }
+
+  @media (max-width: 620px){
+    .price-row{ grid-template-columns: 1.3fr 0.8fr 0.6fr 0.8fr 1fr 24px; font-size:12px; }
+    .line-row{ grid-template-columns: 1.2fr 0.7fr 0.8fr 0.8fr 24px; }
+    .yield-grid{ grid-template-columns: 1fr; }
+    .result-strip{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <button class="theme-toggle" id="themeToggle" title="สลับโหมดมืด/สว่าง">🌙</button>
+    <div class="eyebrow">Cost Calculator</div>
+    <h1>ตัวคำนวณต้นทุนไอศกรีม</h1>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="prices">📋 ฐานข้อมูลราคาวัตถุดิบ</button>
+    <button class="tab" data-tab="recipes">📖 สูตรอาหาร</button>
+    <button class="tab" data-tab="platforms">🛵 แพลตฟอร์ม & ค่าคอมมิชชั่น</button>
+    <button class="tab" data-tab="menu">🍦 คำนวณต้นทุนเมนู</button>
+    <button class="tab" data-tab="summary">📊 สรุปต้นทุน/กำไรทุกเมนู</button>
+    <button class="tab" data-tab="pos">🧾 ขายหน้าร้าน (POS)</button>
+    <button class="tab" data-tab="dashboard">📈 แดชบอร์ดยอดขาย</button>
+  </div>
+
+  <div class="sync-bar">
+    <button class="sync-toggle" id="syncToggle">🔄 ซิงค์ข้อมูลข้ามอุปกรณ์ (GitHub Gist)</button>
+    <div class="sync-panel" id="syncPanel">
+      <div class="sync-row">
+        <input type="password" id="ghToken" placeholder="GitHub Personal Access Token (scope: gist)">
+        <input type="text" id="gistId" placeholder="Gist ID (เว้นว่างไว้ = สร้างใหม่อัตโนมัติตอนบันทึกครั้งแรก)">
+      </div>
+      <div class="sync-actions">
+        <button class="sync-btn save" id="saveGistBtn">📤 บันทึกขึ้น Gist</button>
+        <button class="sync-btn load" id="loadGistBtn">📥 โหลดจาก Gist</button>
+        <span class="sync-status" id="syncStatus">ยังไม่ได้ซิงค์</span>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="autoSyncToggle">
+        <label for="autoSyncToggle">🔄 เปิดออโต้ซิงค์ (บันทึกขึ้น Gist อัตโนมัติทุกครั้งที่แก้ไข)</label>
+      </div>
+      <div class="sync-hint">
+        สร้าง Token ได้ที่ github.com → Settings → Developer settings → Personal access tokens (ให้สิทธิ์ "gist")<br>
+        ข้อมูลราคาวัตถุดิบ + เมนูที่บันทึกไว้ทั้งหมดจะถูกอัปโหลด/ดาวน์โหลดจาก Gist เดียวกัน · Token และ Gist ID จะถูกจำไว้ในเบราว์เซอร์นี้เท่านั้น<br>
+        เมื่อเปิดออโต้ซิงค์ ระบบจะบันทึกขึ้น Gist ให้เองประมาณ 2-3 วินาทีหลังหยุดแก้ไข (ต้องใส่ Token ไว้ก่อน)
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PANEL: PRICE BOOK ============ -->
+  <div class="card panel active" id="panel-prices">
+    <div class="sec-head">
+      <h2>ราคาวัตถุดิบ</h2>
+      <div class="sec-sub" id="priceCount">0 รายการ</div>
+    </div>
+    <div class="price-table">
+      <div class="price-row head-row">
+        <div>ชื่อวัตถุดิบ</div>
+        <div>ราคา (บาท)</div>
+        <div>ต่อ</div>
+        <div>หน่วย</div>
+        <div style="text-align:right">ต้นทุน/หน่วยฐาน</div>
+        <div></div>
+      </div>
+      <div id="priceList"></div>
+
+      <div class="add-row">
+        <input type="text" class="f-name" id="pName" placeholder="ชื่อวัตถุดิบ เช่น นมสด">
+        <input type="number" class="f-price mono" id="pPrice" placeholder="ราคา" step="any">
+        <input type="number" class="f-qty mono" id="pQty" placeholder="ปริมาณ" step="any" value="1">
+        <select class="f-unit mono" id="pUnit">
+          <option value="l">ลิตร (L)</option>
+          <option value="ml">มิลลิลิตร (ml)</option>
+          <option value="kg">กิโลกรัม (kg)</option>
+          <option value="g">กรัม (g)</option>
+          <option value="ea">ชิ้น/ฟอง/หน่วยนับ</option>
+        </select>
+        <button class="add-btn" id="addPriceBtn">+ เพิ่ม</button>
+      </div>
+      <div class="hint">เช่น นมสด ราคา 50 บาท ต่อ 1 ลิตร → ระบบคำนวณต้นทุนต่อ ml ให้อัตโนมัติ</div>
+    </div>
+  </div>
+
+  <!-- ============ PANEL: RECIPES (from menus saved in this app) ============ -->
+  <div class="card panel" id="panel-recipes">
+    <div class="sec-head">
+      <h2>สูตรอาหาร (ส่วนผสมของเมนูที่บันทึกไว้)</h2>
+      <div class="sec-sub" id="recipeCount">0 สูตร</div>
+    </div>
+    <div style="padding: 4px 26px 26px;">
+      <input type="text" id="recipeSearch" placeholder="ค้นหาเมนู..." style="width:100%; margin-bottom:16px;">
+      <div id="recipeList"></div>
+      <div class="hint" id="recipeEmptyHint" style="display:none;">ยังไม่มีเมนูที่บันทึกไว้ — ไปที่แท็บ "🍦 คำนวณต้นทุนเมนู" แล้วกด "💾 บันทึกเมนูนี้" ก่อนครับ วัตถุดิบที่ใส่ไว้ในสูตรจะมาโผล่ที่นี่อัตโนมัติ</div>
+    </div>
+  </div>
+
+  <!-- ============ PANEL: PLATFORMS / COMMISSION ============ -->
+  <div class="card panel" id="panel-platforms">
+    <div class="sec-head">
+      <h2>แพลตฟอร์มส่งอาหาร & ค่าคอมมิชชั่น</h2>
+      <div class="sec-sub" id="platformCount">0 รายการ</div>
+    </div>
+    <div class="price-table">
+      <div class="price-row head-row" style="grid-template-columns: 1.6fr 1fr 28px;">
+        <div>ชื่อแพลตฟอร์ม</div>
+        <div style="text-align:right">ค่าคอมมิชชั่น (%)</div>
+        <div></div>
+      </div>
+      <div id="platformList"></div>
+
+      <div class="add-row">
+        <input type="text" class="f-name" id="plName" placeholder="ชื่อแพลตฟอร์ม เช่น GrabFood">
+        <input type="number" class="f-price mono" id="plPct" placeholder="% ค่าคอม" step="any">
+        <button class="add-btn" id="addPlatformBtn">+ เพิ่ม</button>
+      </div>
+      <div class="hint">ใส่ % ค่าคอมมิชชั่นของแต่ละแอปไว้ที่นี่ ไปเลือกใช้ตอนคำนวณต้นทุนแต่ละเมนูได้ในแท็บถัดไป (เลือก "ขายหน้าร้าน / ไม่มีคอมมิชชั่น" ได้ถ้าไม่ผ่านแอป)</div>
+    </div>
+
+    <div class="price-table" style="border-top: 1px solid var(--card-line); padding-top: 20px;">
+      <div class="sec-head" style="padding: 0 0 14px; border: none;">
+        <h2 style="font-size:17px;">🧮 คำนวณรายได้สุทธิหลังหัก GP + VAT</h2>
+      </div>
+
+      <div class="add-row" style="margin-top:0;">
+        <input type="number" class="f-price mono" id="calcSellPrice" placeholder="ราคาขายที่ต้องการตั้ง (บาท)" step="any">
+        <input type="number" class="f-qty mono" id="calcVatPct" placeholder="VAT %" step="any" value="7">
+      </div>
+      <div class="hint">
+        สูตร: ยอด GP = ราคาขาย × %GP ของแพลตฟอร์ม, VAT คำนวณจากยอด GP (แพลตฟอร์มส่วนใหญ่ในไทยออกใบแจ้งหนี้ค่าบริการ GP แล้วบวก VAT 7% บนค่า GP นั้นอีกที) → รายได้จริง = ราคาขาย − GP − VAT บน GP<br>
+        ปรับ % VAT ได้ถ้าข้อตกลงกับแพลตฟอร์ม/ร้านไม่ตรงกับค่าเริ่มต้น
+      </div>
+
+      <div style="overflow-x:auto; margin-top:14px;">
+        <table class="ing-table" id="platformCalcTable" style="min-width: 560px;">
+          <thead>
+            <tr>
+              <th>แพลตฟอร์ม</th>
+              <th style="text-align:right;">GP %</th>
+              <th style="text-align:right;">ยอด GP (฿)</th>
+              <th style="text-align:right;">VAT บน GP (฿)</th>
+              <th style="text-align:right;">หักรวม (฿)</th>
+              <th style="text-align:right;">รายได้จริง (฿)</th>
+              <th style="text-align:right;">% ที่ได้รับจริง</th>
+            </tr>
+          </thead>
+          <tbody id="platformCalcBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PANEL: MENU COST ============ -->
+  <div class="card panel" id="panel-menu">
+    <div class="menu-head">
+      <input type="text" id="menuName" placeholder="ชื่อเมนู เช่น ไอศกรีมวานิลลา">
+    </div>
+
+    <div class="line-section">
+      <div class="line-header">
+        <h2>1. ต้นทุนวัตถุดิบ</h2>
+      </div>
+      <div class="line-row head-row">
+        <div>วัตถุดิบ</div>
+        <div>ปริมาณ</div>
+        <div>หน่วย</div>
+        <div style="text-align:right">ต้นทุน</div>
+        <div></div>
+      </div>
+      <div id="lineList"></div>
+      <div class="subtotal-row" id="materialSubtotal">รวมต้นทุนวัตถุดิบ: 0.00 ฿</div>
+
+      <div class="add-line-row">
+        <select class="f-ing mono" id="lIng"></select>
+        <input type="number" class="f-amt mono" id="lAmt" placeholder="ปริมาณ" step="any">
+        <select class="f-unit2 mono" id="lUnit"></select>
+        <button class="add-btn" id="addLineBtn">+ เพิ่ม</button>
+      </div>
+      <div class="hint">เลือกวัตถุดิบจากฐานข้อมูลราคา แล้วระบุปริมาณที่ใช้ในสูตรนี้</div>
+    </div>
+
+    <div class="line-section">
+      <div class="line-header">
+        <h2>2. ต้นทุนบรรจุภัณฑ์ต่อ 1 หน่วยขาย (ไพน์)</h2>
+      </div>
+      <div class="line-row head-row" style="grid-template-columns: 1.6fr 1fr 28px;">
+        <div>รายการ</div>
+        <div style="text-align:right">ราคา/หน่วย (บาท)</div>
+        <div></div>
+      </div>
+      <div id="pkgList"></div>
+      <div class="subtotal-row" id="pkgSubtotal">รวมต้นทุนบรรจุภัณฑ์: 0.00 ฿</div>
+
+      <div class="add-line-row">
+        <input type="text" class="f-ing" id="pkgName" placeholder="เช่น ถ้วยไอศกรีม, ฝา, ช้อน, สติกเกอร์">
+        <input type="number" class="f-amt mono" id="pkgPrice" placeholder="ราคา" step="any">
+        <button class="add-btn" id="addPkgBtn">+ เพิ่ม</button>
+      </div>
+      <div class="hint">ใส่ราคาต่อ 1 ถ้วย/หน่วยขายโดยตรง ไม่ต้องคูณกับปริมาณทั้ง batch</div>
+    </div>
+
+    <div class="yield-section">
+      <div class="line-header" style="margin-bottom:6px;">
+        <h2 style="margin:0;">3. ปริมาณ & ราคาขาย</h2>
+      </div>
+      <div class="yield-grid">
+        <div class="yield-field">
+          <label>ปริมาณที่ทำได้ทั้งหมด (ml)</label>
+          <input type="number" class="mono" id="totalYieldMl" placeholder="เช่น 2000" step="any">
+        </div>
+        <div class="yield-field">
+          <label>1 ไพน์ = กี่ ml</label>
+          <input type="number" class="mono" id="mlPerPint" value="473">
+        </div>
+        <div class="yield-field">
+          <label>ราคาขายต่อไพน์ (บาท)</label>
+          <input type="number" class="mono" id="sellPrice" placeholder="เช่น 180" step="any">
+        </div>
+        <div class="yield-field">
+          <label>ช่องทางขาย / แพลตฟอร์ม</label>
+          <select class="mono" id="sellPlatform"></select>
+        </div>
+      </div>
+
+      <div class="line-header" style="margin: 18px 0 8px;">
+        <h2 style="margin:0;">4. สรุปโครงสร้างต้นทุนต่อ 1 ไพน์</h2>
+      </div>
+
+      <div class="warn-banner" id="yieldWarning">
+        ⚠️ ยังไม่ได้กรอก "ปริมาณที่ทำได้ทั้งหมด (ml)" ด้านบน — ต้นทุนวัตถุดิบจะยังไม่ถูกแปลงเป็นต่อไพน์ (แสดงเป็น 0 ฿ ชั่วคราว) กรอกให้ครบเพื่อให้ยอดรวมถูกต้อง
+      </div>
+
+      <div class="breakdown-bar" id="breakdownBar"></div>
+
+      <div class="breakdown-list" id="breakdownList"></div>
+
+      <div class="result-strip" style="margin-top:14px;">
+        <div class="result-box">
+          <div class="label">ต้นทุนรวม/ไพน์</div>
+          <div class="value" id="resTotalCostPint">0.00 ฿</div>
+        </div>
+        <div class="result-box">
+          <div class="label">กำไร/ไพน์</div>
+          <div class="value" id="resProfitPint">0.00 ฿</div>
+        </div>
+        <div class="result-box highlight">
+          <div class="label">% กำไรต่อราคาขาย</div>
+          <div class="value" id="resProfitPct">0.0%</div>
+        </div>
+      </div>
+
+      <div class="save-menu-row">
+        <button class="save-menu-btn" id="saveMenuBtn">💾 บันทึกเมนูนี้</button>
+      </div>
+    </div>
+
+    <div class="yield-section" style="border-top: none;">
+      <div class="line-header" style="margin-bottom:6px;">
+        <h2 style="margin:0;">5. แบ่งขายเป็นถ้วยย่อย</h2>
+      </div>
+      <div class="yield-grid" style="grid-template-columns: 1fr 2fr;">
+        <div class="yield-field">
+          <label>1 ไพน์ แบ่งขายได้กี่ถ้วย</label>
+          <input type="number" class="mono" id="cupsPerPint" placeholder="เช่น 4" step="1" min="1">
+        </div>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="divideByFour">
+        <label for="divideByFour">แบ่งขาย 4 ถ้วย/ไพน์ (หารต้นทุนทั้งหมดด้วย 4 อัตโนมัติ)</label>
+      </div>
+
+      <div class="result-strip">
+        <div class="result-box">
+          <div class="label">ต้นทุนรวม/ถ้วย</div>
+          <div class="value" id="resCostPerCup">0.00 ฿</div>
+        </div>
+        <div class="result-box">
+          <div class="label">ราคาขาย/ถ้วย</div>
+          <div class="value" id="resSellPerCup">0.00 ฿</div>
+        </div>
+        <div class="result-box highlight">
+          <div class="label">กำไร/ถ้วย</div>
+          <div class="value" id="resProfitPerCup">0.00 ฿</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-lib">
+      <h2>เมนูที่บันทึกไว้</h2>
+      <div id="menuLibList"></div>
+    </div>
+  </div>
+
+  <!-- ============ PANEL: SUMMARY (COST / PRICE / PROFIT PER MENU, PER PINT & PER CUP) ============ -->
+  <div class="card panel" id="panel-summary">
+    <div class="sec-head">
+      <h2>สรุปต้นทุน ราคาขาย และกำไรของทุกเมนู</h2>
+      <div class="sec-sub" id="summaryCount">0 เมนู</div>
+    </div>
+    <div style="padding: 4px 26px 24px;">
+      <div class="hint" style="margin-bottom:14px;">ตั้งราคาขายและเลือกแพลตฟอร์ม/ค่าคอมมิชชั่นแยกกันได้ทั้งแบบขายเป็น "ไพน์เต็ม" และแบบ "แบ่งขายเป็นถ้วย" เพราะราคาขายและช่องทางขายของสองแบบนี้มักไม่เท่ากัน</div>
+      <div id="summaryCards"></div>
+      <div class="hint" id="summaryEmptyHint" style="display:none;">ยังไม่มีเมนูที่บันทึกไว้ — ไปที่แท็บ "🍦 คำนวณต้นทุนเมนู" แล้วกด "💾 บันทึกเมนูนี้" ก่อนครับ</div>
+    </div>
+  </div>
+
+  <!-- ============ PANEL: POS ============ -->
+  <div class="card panel" id="panel-pos">
+    <div class="sec-head">
+      <h2>ขายหน้าร้าน (POS)</h2>
+      <div class="sec-sub" id="posStockToggleBtn" style="cursor:pointer; text-decoration:underline;">📦 จัดการสต็อก</div>
+    </div>
+    <div style="padding: 14px 26px 4px;">
+      <div class="pos-channel-row">
+        <button class="pos-channel-btn active" id="posChannelStore">🏪 ขายหน้าร้าน</button>
+        <button class="pos-channel-btn" id="posChannelApp">📱 ขายผ่านแอป</button>
+      </div>
+
+      <div class="pos-stock-panel" id="posStockPanel" style="display:none;">
+        <div id="posStockList"></div>
+        <div class="hint">สต็อกนับเป็น "ไพน์" (หน่วยจริงที่แช่แข็งไว้) — ขายเป็นถ้วยจะหักสต็อกตามสัดส่วน ÷จำนวนถ้วยต่อไพน์ของเมนูนั้นให้อัตโนมัติ</div>
+      </div>
+
+      <div class="section-title">🥡 ขายเป็นไพน์</div>
+      <div class="pos-grid" id="posGridPint"></div>
+
+      <div class="section-title">🥤 ขายเป็นถ้วย</div>
+      <div class="pos-grid" id="posGridCup"></div>
+    </div>
+
+    <div class="pos-cart" id="posCart">
+      <div class="pos-cart-head">🛒 ตะกร้า (<span id="posCartCount">0</span> รายการ)</div>
+      <div id="posCartLines"></div>
+      <div class="pos-cart-total"><span>รวมทั้งหมด</span><b id="posCartTotal">0.00 ฿</b></div>
+      <button class="btn btn-primary" id="posCheckoutBtn" style="width:100%;">✅ บันทึกการขาย</button>
+      <div class="sync-status" id="posStatus" style="text-align:center; margin-top:8px; justify-content:center;"></div>
+    </div>
+  </div>
+
+  <!-- ============ PANEL: DASHBOARD ============ -->
+  <div class="card panel" id="panel-dashboard">
+    <div class="sec-head">
+      <h2>แดชบอร์ดยอดขาย</h2>
+    </div>
+    <div style="padding: 14px 26px 26px;">
+      <div class="dash-filter-row" id="dashFilterRow">
+        <button class="dash-filter-btn active" data-range="today">วันนี้</button>
+        <button class="dash-filter-btn" data-range="7d">7 วันล่าสุด</button>
+        <button class="dash-filter-btn" data-range="30d">30 วันล่าสุด</button>
+        <button class="dash-filter-btn" data-range="all">ทั้งหมด</button>
+      </div>
+
+      <div class="dash-grid" id="dashSummary"></div>
+      <div class="hint" id="dashBreakdown" style="margin-top:-8px; margin-bottom:18px;"></div>
+
+      <div class="section-title">🏆 เมนูขายดี</div>
+      <div id="dashTopMenus"></div>
+
+      <div class="section-title">⏰ ช่วงเวลาที่ขายดี</div>
+      <div id="dashHourly"></div>
+
+      <div class="section-title">🧾 รายการขายล่าสุด</div>
+      <div id="dashRecent"></div>
+    </div>
+  </div>
+
+  <footer>
+    <button class="print-btn" id="printBtn">พิมพ์ / บันทึกเป็น PDF</button>
+  </footer>
+</div>
+
+<script>
+  // ---------- data ----------
+  let prices = [
+    { name: "นมสด", price: 50, qty: 1, unit: "l" },
+    { name: "วิปปิ้งครีม", price: 120, qty: 1, unit: "l" },
+    { name: "น้ำตาลทราย", price: 25, qty: 1, unit: "kg" },
+    { name: "ไข่แดง", price: 4, qty: 1, unit: "ea" },
+  ];
+
+  let lines = []; // { ingId(index into prices at add time -> store name), amt, unit }
+  // store lines referencing ingredient name (string) so deletions in price book don't crash indices
+  lines = [
+    { name: "นมสด", amt: 500, unit: "ml" },
+    { name: "วิปปิ้งครีม", amt: 300, unit: "ml" },
+    { name: "น้ำตาลทราย", amt: 120, unit: "g" },
+  ];
+
+  let pkgItems = [
+    { name: "ถ้วยไอศกรีม + ฝา", price: 4 },
+    { name: "ช้อน", price: 0.5 },
+    { name: "สติกเกอร์/ฉลาก", price: 1 },
+  ];
+
+  let platforms = [
+    { name: "ขายหน้าร้าน / ไม่มีคอมมิชชั่น", pct: 0 },
+    { name: "GrabFood", pct: 30 },
+    { name: "LINE MAN", pct: 28 },
+    { name: "ShopeeFood", pct: 27 },
+  ];
+
+  let menus = {}; // savedName -> { lines, pkgItems, totalYieldMl, mlPerPint, sellPrice, platformName, stock (pints) }
+  let salesLog = []; // { id, ts, channel, items:[{menuName, unit, qty, unitPrice, channel, lineTotal}], total }
+  let cart = []; // POS working cart
+  let posChannel = 'store';
+  let dashRange = 'today';
+
+  const $ = (id) => document.getElementById(id);
+
+  const baseUnitLabel = { l: "ml", ml: "ml", kg: "g", g: "g", ea: "หน่วย" };
+  function toBaseQty(qty, unit){
+    // convert a given qty+unit into ml (for l/ml) or g (for kg/g) or count (ea)
+    if (unit === "l") return qty * 1000;
+    if (unit === "ml") return qty;
+    if (unit === "kg") return qty * 1000;
+    if (unit === "g") return qty;
+    if (unit === "ea") return qty;
+    return qty;
+  }
+  function costPerBaseUnit(p){
+    const baseQty = toBaseQty(p.qty, p.unit);
+    if (!baseQty) return 0;
+    return p.price / baseQty;
+  }
+  function baseKind(unit){
+    // "ml" for volume, "g" for weight, "ea" for count
+    if (unit === "l" || unit === "ml") return "ml";
+    if (unit === "kg" || unit === "g") return "g";
+    return "ea";
+  }
+
+  const lineUnitOptions = {
+    ml: [
+      {v:"ml", t:"มิลลิลิตร (ml)"},
+      {v:"l", t:"ลิตร (L)"},
+      {v:"tbsp", t:"ช้อนโต๊ะ"},
+      {v:"tsp", t:"ช้อนชา"},
+      {v:"cup", t:"ถ้วยตวง"},
+    ],
+    g: [
+      {v:"g", t:"กรัม (g)"},
+      {v:"kg", t:"กิโลกรัม (kg)"},
+    ],
+    ea: [
+      {v:"ea", t:"หน่วยนับ (ฟอง/ชิ้น)"},
+    ]
+  };
+  function lineUnitToBase(amt, unit){
+    // convert to ml (if volume-family) or g (weight-family) or ea
+    const map = { ml:1, l:1000, tbsp:15, tsp:5, cup:250, g:1, kg:1000, ea:1 };
+    return amt * (map[unit] || 1);
+  }
+
+  // ---------- tabs ----------
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      $('panel-' + tab.dataset.tab).classList.add('active');
+      if (tab.dataset.tab === 'pos'){ renderPosGrid(); renderStockPanel(); renderPosCart(); }
+      if (tab.dataset.tab === 'dashboard'){ renderDashboard(); }
+    });
+  });
+
+  // ---------- Recipes tab (reads directly from menus{} already saved in this app) ----------
+  function renderRecipeList(){
+    const q = ($('recipeSearch').value || '').trim().toLowerCase();
+    const names = Object.keys(menus)
+      .filter(name => !q || name.toLowerCase().includes(q))
+      .sort((a, b) => a.localeCompare(b, 'th'));
+
+    $('recipeCount').textContent = names.length + ' สูตร';
+    $('recipeEmptyHint').style.display = (Object.keys(menus).length === 0) ? 'block' : 'none';
+
+    if (names.length === 0){
+      $('recipeList').innerHTML = Object.keys(menus).length > 0
+        ? `<div class="hint">ไม่พบเมนูที่ตรงกับคำค้นหา</div>` : '';
+      return;
+    }
+
+    $('recipeList').innerHTML = names.map(name => {
+      const m = menus[name];
+      const rows = (m.lines || []).map(line => `
+        <tr>
+          <td class="name-cell">${escapeHtmlCalc(line.name)}</td>
+          <td class="num-cell" style="text-align:right;">${fmt(line.amt, line.amt % 1 === 0 ? 0 : 2)} ${escapeHtmlCalc(unitLabel(line.unit))}</td>
+        </tr>
+      `).join('') || `<tr><td colspan="2" style="color:var(--ink-soft);">ยังไม่ได้ใส่วัตถุดิบในสูตรนี้</td></tr>`;
+      return `
+        <div class="recipe-card">
+          <div class="recipe-card-head">
+            <h3>${escapeHtmlCalc(name)}</h3>
+          </div>
+          <table class="ing-table">
+            <thead><tr><th>วัตถุดิบ</th><th style="text-align:right;">ปริมาณ</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `;
+    }).join('');
+  }
+
+  $('recipeSearch').addEventListener('input', renderRecipeList);
+  renderRecipeList();
+
+  // ---------- price book render ----------
+  function fmt(n, d=2){
+    if (!isFinite(n)) return (0).toFixed(d);
+    return n.toFixed(d);
+  }
+  function unitLabel(u){
+    return { l:"ลิตร", ml:"มล.", kg:"กก.", g:"กรัม", ea:"หน่วย" }[u] || u;
+  }
+
+  function renderPrices(){
+    const list = $('priceList');
+    list.innerHTML = "";
+    $('priceCount').textContent = prices.length + " รายการ";
+
+    prices.forEach((p, idx) => {
+      const row = document.createElement('div');
+      row.className = 'price-row';
+
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text'; nameInput.value = p.name;
+      nameInput.addEventListener('input', e => { p.name = e.target.value; renderIngSelect(); });
+
+      const priceInput = document.createElement('input');
+      priceInput.type = 'number'; priceInput.className='mono'; priceInput.step='any'; priceInput.value = p.price;
+      priceInput.addEventListener('input', e => { p.price = parseFloat(e.target.value)||0; renderPrices(); });
+
+      const qtyInput = document.createElement('input');
+      qtyInput.type = 'number'; qtyInput.className='mono'; qtyInput.step='any'; qtyInput.value = p.qty;
+      qtyInput.addEventListener('input', e => { p.qty = parseFloat(e.target.value)||0; renderPrices(); });
+
+      const unitSelect = document.createElement('select');
+      unitSelect.className='mono';
+      [["l","ลิตร (L)"],["ml","มิลลิลิตร (ml)"],["kg","กิโลกรัม (kg)"],["g","กรัม (g)"],["ea","ชิ้น/ฟอง"]].forEach(([v,t])=>{
+        const o = document.createElement('option'); o.value=v; o.textContent=t;
+        if (v===p.unit) o.selected = true;
+        unitSelect.appendChild(o);
+      });
+      unitSelect.addEventListener('change', e => { p.unit = e.target.value; renderPrices(); renderIngSelect(); calcMenu(); });
+
+      const costDiv = document.createElement('div');
+      costDiv.className = 'unit-cost';
+      const cpu = costPerBaseUnit(p);
+      costDiv.textContent = fmt(cpu, cpu < 1 ? 4 : 2) + " ฿/" + baseUnitLabel[p.unit];
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'del-btn'; delBtn.innerHTML = '✕';
+      delBtn.addEventListener('click', () => { prices.splice(idx,1); renderPrices(); renderIngSelect(); calcMenu(); });
+
+      row.appendChild(nameInput);
+      row.appendChild(priceInput);
+      row.appendChild(qtyInput);
+      row.appendChild(unitSelect);
+      row.appendChild(costDiv);
+      row.appendChild(delBtn);
+      list.appendChild(row);
+    });
+    calcMenu();
+  }
+
+  $('addPriceBtn').addEventListener('click', () => {
+    const name = $('pName').value.trim();
+    const price = parseFloat($('pPrice').value);
+    const qty = parseFloat($('pQty').value);
+    const unit = $('pUnit').value;
+    if (!name || isNaN(price) || isNaN(qty) || qty<=0){ $('pName').focus(); return; }
+    prices.push({ name, price, qty, unit });
+    $('pName').value=''; $('pPrice').value=''; $('pQty').value='1';
+    $('pName').focus();
+    renderPrices();
+    renderIngSelect();
+  });
+  ['pName','pPrice','pQty'].forEach(id => {
+    $(id).addEventListener('keydown', e => { if (e.key==='Enter') $('addPriceBtn').click(); });
+  });
+
+  // ---------- menu builder ----------
+  function renderIngSelect(){
+    const sel = $('lIng');
+    const prevVal = sel.value;
+    sel.innerHTML = "";
+    prices.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.name; o.textContent = p.name;
+      sel.appendChild(o);
+    });
+    if (prices.some(p=>p.name===prevVal)) sel.value = prevVal;
+    renderUnitSelect();
+  }
+  function renderUnitSelect(){
+    const ingName = $('lIng').value;
+    const p = prices.find(x => x.name === ingName);
+    const kind = p ? baseKind(p.unit) : "ml";
+    const sel = $('lUnit');
+    sel.innerHTML = "";
+    (lineUnitOptions[kind] || lineUnitOptions.ml).forEach(opt => {
+      const o = document.createElement('option'); o.value = opt.v; o.textContent = opt.t;
+      sel.appendChild(o);
+    });
+  }
+  $('lIng').addEventListener('change', renderUnitSelect);
+
+  function lineCost(line){
+    const p = prices.find(x => x.name === line.name);
+    if (!p) return 0;
+    const cpu = costPerBaseUnit(p); // cost per ml, g, or ea
+    const baseQty = lineUnitToBase(line.amt, line.unit); // amount expressed in ml/g/ea
+    return cpu * baseQty;
+  }
+
+  function renderLines(){
+    const list = $('lineList');
+    list.innerHTML = "";
+    lines.forEach((line, idx) => {
+      const row = document.createElement('div');
+      row.className = 'line-row';
+
+      const nameDiv = document.createElement('div');
+      const p = prices.find(x => x.name === line.name);
+      nameDiv.textContent = line.name + (p ? "" : "  ⚠️ ไม่พบในฐานราคา");
+      nameDiv.style.fontSize = "14px";
+      if (!p) nameDiv.style.color = "var(--danger)";
+
+      const amtInput = document.createElement('input');
+      amtInput.type='number'; amtInput.className='mono'; amtInput.step='any'; amtInput.value=line.amt;
+      amtInput.addEventListener('input', e => { line.amt = parseFloat(e.target.value)||0; calcMenu(); });
+
+      const unitDiv = document.createElement('div');
+      unitDiv.className = 'mono';
+      unitDiv.style.fontSize = '13px';
+      unitDiv.style.color = 'var(--ink-soft)';
+      unitDiv.textContent = ({ml:"มล.",l:"ลิตร",tbsp:"ช้อนโต๊ะ",tsp:"ช้อนชา",cup:"ถ้วย",g:"กรัม",kg:"กก.",ea:"หน่วย"})[line.unit] || line.unit;
+
+      const costDiv = document.createElement('div');
+      costDiv.className = 'line-cost';
+      costDiv.textContent = fmt(lineCost(line)) + " ฿";
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'del-btn'; delBtn.innerHTML = '✕';
+      delBtn.addEventListener('click', () => { lines.splice(idx,1); renderLines(); calcMenu(); });
+
+      row.appendChild(nameDiv);
+      row.appendChild(amtInput);
+      row.appendChild(unitDiv);
+      row.appendChild(costDiv);
+      row.appendChild(delBtn);
+      list.appendChild(row);
+    });
+  }
+
+  $('addLineBtn').addEventListener('click', () => {
+    const name = $('lIng').value;
+    const amt = parseFloat($('lAmt').value);
+    const unit = $('lUnit').value;
+    if (!name || isNaN(amt) || amt<=0){ $('lAmt').focus(); return; }
+    lines.push({ name, amt, unit });
+    $('lAmt').value='';
+    renderLines();
+    calcMenu();
+  });
+  $('lAmt').addEventListener('keydown', e => { if (e.key==='Enter') $('addLineBtn').click(); });
+
+  // ---------- packaging ----------
+  function renderPkg(){
+    const list = $('pkgList');
+    list.innerHTML = "";
+    pkgItems.forEach((item, idx) => {
+      const row = document.createElement('div');
+      row.className = 'line-row';
+      row.style.gridTemplateColumns = '1.6fr 1fr 28px';
+
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text'; nameInput.value = item.name;
+      nameInput.addEventListener('input', e => { item.name = e.target.value; });
+
+      const priceInput = document.createElement('input');
+      priceInput.type = 'number'; priceInput.className = 'mono'; priceInput.step = 'any';
+      priceInput.value = item.price;
+      priceInput.style.textAlign = 'right';
+      priceInput.addEventListener('input', e => { item.price = parseFloat(e.target.value)||0; calcMenu(); });
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'del-btn'; delBtn.innerHTML = '✕';
+      delBtn.addEventListener('click', () => { pkgItems.splice(idx,1); renderPkg(); calcMenu(); });
+
+      row.appendChild(nameInput);
+      row.appendChild(priceInput);
+      row.appendChild(delBtn);
+      list.appendChild(row);
+    });
+  }
+  $('addPkgBtn').addEventListener('click', () => {
+    const name = $('pkgName').value.trim();
+    const price = parseFloat($('pkgPrice').value);
+    if (!name || isNaN(price)){ $('pkgName').focus(); return; }
+    pkgItems.push({ name, price });
+    $('pkgName').value=''; $('pkgPrice').value='';
+    $('pkgName').focus();
+    renderPkg(); calcMenu();
+  });
+  ['pkgName','pkgPrice'].forEach(id => {
+    $(id).addEventListener('keydown', e => { if (e.key==='Enter') $('addPkgBtn').click(); });
+  });
+
+  // ---------- platforms (commission %) ----------
+  function renderPlatformCalc(){
+    const tbody = $('platformCalcBody');
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    const price = parseFloat($('calcSellPrice').value) || 0;
+    const vatPct = parseFloat($('calcVatPct').value);
+    const vat = isNaN(vatPct) ? 7 : vatPct;
+
+    if (platforms.length === 0){
+      tbody.innerHTML = '<tr><td colspan="7" style="color:var(--ink-soft);">ยังไม่มีแพลตฟอร์มในรายการด้านบน</td></tr>';
+      return;
+    }
+
+    platforms.forEach(pl => {
+      const gpAmount = price * (pl.pct || 0) / 100;
+      const vatOnGp = gpAmount * vat / 100;
+      const totalDeduct = gpAmount + vatOnGp;
+      const net = price - totalDeduct;
+      const netPct = price > 0 ? (net / price) * 100 : 0;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="name-cell">${escapeHtmlCalc(pl.name)}</td>
+        <td class="num-cell">${fmt(pl.pct, 1)}%</td>
+        <td class="num-cell">${fmt(gpAmount)}</td>
+        <td class="num-cell">${fmt(vatOnGp)}</td>
+        <td class="num-cell">${fmt(totalDeduct)}</td>
+        <td class="net-cell">${fmt(net)}</td>
+        <td class="num-cell">${price > 0 ? fmt(netPct, 1) + '%' : '—'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+  function escapeHtmlCalc(str){
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : str;
+    return div.innerHTML;
+  }
+  function persistChange(){ scheduleAutoSync(); }
+  $('calcSellPrice').addEventListener('input', renderPlatformCalc);
+  $('calcVatPct').addEventListener('input', renderPlatformCalc);
+
+  // ---------- summary tab (cost / price / profit per menu, per pint & per cup) ----------
+  function platformOptionsHtml(selectedName){
+    let html = '<option value="">— ไม่เลือก —</option>';
+    platforms.forEach(pl => {
+      const sel = pl.name === selectedName ? 'selected' : '';
+      html += `<option value="${escapeAttrCalc(pl.name)}" ${sel}>${escapeHtmlCalc(pl.name)} (${pl.pct}%)</option>`;
+    });
+    return html;
+  }
+  function escapeAttrCalc(str){ return (str||'').replace(/"/g,'&quot;'); }
+
+  function profitLineHtml(profit, profitPct, hasPrice){
+    const color = profit >= 0 ? 'var(--sage-deep)' : 'var(--danger)';
+    const pctTxt = hasPrice ? fmt(profitPct,1) + '%' : '—';
+    return `<b style="color:${color};">${fmt(profit)} ฿ (${pctTxt})</b>`;
+  }
+
+  function channelColumnHtml(prefix, idx, m, full){
+    const icon = prefix === 'pint' ? '🥡' : '🥤';
+    const label = prefix === 'pint' ? 'ขายเป็นไพน์' : `ขายเป็นถ้วย (÷${full.cupsPerPint})`;
+    const materialCost = prefix === 'pint' ? full.materialPerPint : full.materialPerCup;
+    const pkgOn = full[prefix + 'PkgOn'];
+    const pkgPrice = full[prefix + 'PkgPrice'];
+    const storePrice = m[prefix === 'pint' ? 'sellPrice' : 'cupSellPrice'] || '';
+    const appOn = full[prefix + 'CommissionOn'];
+    const appPrice = m[prefix + 'AppSellPrice'] || '';
+    const platformField = prefix === 'pint' ? 'platformName' : 'cupPlatformName';
+
+    return `
+      <div class="summary-col-title">${icon} ${label} · ต้นทุนวัตถุดิบ ${fmt(materialCost)} ฿</div>
+      <div class="summary-checkbox-row">
+        <input type="checkbox" id="sc_${prefix}PkgOn_${idx}" ${pkgOn ? 'checked' : ''}>
+        <label for="sc_${prefix}PkgOn_${idx}">รวมต้นทุนบรรจุภัณฑ์</label>
+      </div>
+      <input type="number" class="summary-price-input" id="sc_${prefix}PkgPrice_${idx}" placeholder="ราคาบรรจุภัณฑ์ (บาท)" step="any" value="${fmt(pkgPrice)}">
+
+      <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--card-line);">
+        <div class="summary-col-title" style="margin-bottom:6px;">🏪 ขายหน้าร้าน</div>
+        <input type="number" class="summary-price-input" id="sc_${prefix}StorePrice_${idx}" placeholder="ราคาขายหน้าร้าน (บาท)" step="any" value="${storePrice}">
+        <div class="summary-row profit-row"><span>กำไร</span><span id="sc_${prefix}StoreProfit_${idx}">${profitLineHtml(full[prefix+'StoreProfit'], full[prefix+'StoreProfitPct'], full[prefix+'StorePriceVal'] > 0)}</span></div>
+      </div>
+
+      <div class="summary-checkbox-row" style="margin-top:10px;">
+        <input type="checkbox" id="sc_${prefix}On_${idx}" ${appOn ? 'checked' : ''}>
+        <label for="sc_${prefix}On_${idx}">ขายผ่านแอปด้วย (ราคาคนละราคากับหน้าร้าน)</label>
+      </div>
+      <div id="sc_${prefix}AppSection_${idx}" style="display:${appOn ? 'block' : 'none'};">
+        <div style="padding-top:6px; border-top:1px dashed var(--card-line);">
+          <div class="summary-col-title" style="margin:6px 0;">📱 ขายผ่านแอป</div>
+          <select class="summary-select" id="sc_${prefix}Platform_${idx}">${platformOptionsHtml(m[platformField])}</select>
+          <input type="number" class="summary-price-input" id="sc_${prefix}AppPrice_${idx}" placeholder="ราคาขายในแอป (บาท)" step="any" value="${appPrice}">
+          <div class="summary-row profit-row"><span>กำไร (หัก GP ${fmt(full[prefix+'CommissionPct'],1)}% แล้ว)</span><span id="sc_${prefix}AppProfit_${idx}">${profitLineHtml(full[prefix+'AppProfit'], full[prefix+'AppProfitPct'], full[prefix+'AppPriceVal'] > 0)}</span></div>
+        </div>
+      </div>
+    `;
+  }
+
+  function bindChannelEvents(prefix, idx, name){
+    const m = menus[name];
+    $('sc_' + prefix + 'PkgOn_' + idx).addEventListener('change', e => {
+      m[prefix + 'PkgOn'] = e.target.checked; refreshChannelNumbers(name, idx); persistChange();
+    });
+    $('sc_' + prefix + 'PkgPrice_' + idx).addEventListener('input', e => {
+      m[prefix + 'PkgPrice'] = parseFloat(e.target.value) || 0; refreshChannelNumbers(name, idx); persistChange();
+    });
+    $('sc_' + prefix + 'StorePrice_' + idx).addEventListener('input', e => {
+      m[prefix === 'pint' ? 'sellPrice' : 'cupSellPrice'] = parseFloat(e.target.value) || 0;
+      refreshChannelNumbers(name, idx); persistChange();
+    });
+    $('sc_' + prefix + 'On_' + idx).addEventListener('change', e => {
+      m[prefix + 'CommissionOn'] = e.target.checked;
+      $('sc_' + prefix + 'AppSection_' + idx).style.display = e.target.checked ? 'block' : 'none';
+      refreshChannelNumbers(name, idx); persistChange();
+    });
+    $('sc_' + prefix + 'Platform_' + idx).addEventListener('change', e => {
+      m[prefix === 'pint' ? 'platformName' : 'cupPlatformName'] = e.target.value;
+      refreshChannelNumbers(name, idx); persistChange();
+    });
+    $('sc_' + prefix + 'AppPrice_' + idx).addEventListener('input', e => {
+      m[prefix + 'AppSellPrice'] = parseFloat(e.target.value) || 0;
+      refreshChannelNumbers(name, idx); persistChange();
+    });
+  }
+
+  function refreshChannelNumbers(name, idx){
+    const m = menus[name];
+    if (!m) return;
+    const full = computeMenuFull(m);
+    ['pint','cup'].forEach(prefix => {
+      $('sc_' + prefix + 'StoreProfit_' + idx).innerHTML = profitLineHtml(full[prefix+'StoreProfit'], full[prefix+'StoreProfitPct'], full[prefix+'StorePriceVal'] > 0);
+      $('sc_' + prefix + 'AppProfit_' + idx).innerHTML = profitLineHtml(full[prefix+'AppProfit'], full[prefix+'AppProfitPct'], full[prefix+'AppPriceVal'] > 0);
+    });
+  }
+
+  function renderSummaryTab(){
+    const container = $('summaryCards');
+    if (!container) return;
+    const names = Object.keys(menus);
+    $('summaryCount').textContent = names.length + ' เมนู';
+    $('summaryEmptyHint').style.display = names.length === 0 ? 'block' : 'none';
+    container.innerHTML = "";
+
+    names.forEach((name, idx) => {
+      const m = menus[name];
+      const full = computeMenuFull(m);
+
+      const card = document.createElement('div');
+      card.className = 'summary-card';
+      card.innerHTML = `
+        <div class="summary-card-head">
+          <div class="name">${escapeHtmlCalc(name)}</div>
+          <button class="lib-btn" id="sc_goto_${idx}">ไปที่เมนูนี้</button>
+        </div>
+        <div class="summary-cols">
+          <div class="summary-col">${channelColumnHtml('pint', idx, m, full)}</div>
+          <div class="summary-col">${channelColumnHtml('cup', idx, m, full)}</div>
+        </div>
+      `;
+      container.appendChild(card);
+
+      $('sc_goto_' + idx).addEventListener('click', () => {
+        loadMenuIntoEditor(name);
+        const menuTabBtn = document.querySelector('.tab[data-tab="menu"]');
+        if (menuTabBtn) menuTabBtn.click();
+      });
+
+      bindChannelEvents('pint', idx, name);
+      bindChannelEvents('cup', idx, name);
+    });
+  }
+
+  function renderPlatformList(){
+    const list = $('platformList');
+    list.innerHTML = "";
+    $('platformCount').textContent = platforms.length + " รายการ";
+    platforms.forEach((pl, idx) => {
+      const row = document.createElement('div');
+      row.className = 'price-row';
+      row.style.gridTemplateColumns = '1.6fr 1fr 28px';
+
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text'; nameInput.value = pl.name;
+      nameInput.addEventListener('input', e => { pl.name = e.target.value; renderPlatformSelect(); });
+
+      const pctInput = document.createElement('input');
+      pctInput.type = 'number'; pctInput.className = 'mono'; pctInput.step = 'any';
+      pctInput.value = pl.pct;
+      pctInput.style.textAlign = 'right';
+      pctInput.addEventListener('input', e => { pl.pct = parseFloat(e.target.value)||0; renderPlatformSelect(); calcMenu(); });
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'del-btn'; delBtn.innerHTML = '✕';
+      delBtn.addEventListener('click', () => { platforms.splice(idx,1); renderPlatformList(); renderPlatformSelect(); calcMenu(); });
+
+      row.appendChild(nameInput);
+      row.appendChild(pctInput);
+      row.appendChild(delBtn);
+      list.appendChild(row);
+    });
+    renderPlatformCalc();
+    renderSummaryTab();
+  }
+  $('addPlatformBtn').addEventListener('click', () => {
+    const name = $('plName').value.trim();
+    const pct = parseFloat($('plPct').value);
+    if (!name || isNaN(pct)){ $('plName').focus(); return; }
+    platforms.push({ name, pct });
+    $('plName').value=''; $('plPct').value='';
+    $('plName').focus();
+    renderPlatformList(); renderPlatformSelect();
+    scheduleAutoSync();
+  });
+  ['plName','plPct'].forEach(id => {
+    $(id).addEventListener('keydown', e => { if (e.key==='Enter') $('addPlatformBtn').click(); });
+  });
+
+  function renderPlatformSelect(){
+    const sel = $('sellPlatform');
+    const prevVal = sel.value;
+    sel.innerHTML = "";
+    platforms.forEach(pl => {
+      const o = document.createElement('option');
+      o.value = pl.name; o.textContent = pl.name + " (" + pl.pct + "%)";
+      sel.appendChild(o);
+    });
+    if (platforms.some(p=>p.name===prevVal)) sel.value = prevVal;
+  }
+  $('sellPlatform').addEventListener('change', calcMenu);
+  $('sellPrice').addEventListener('input', calcMenu);
+
+  // ---------- calc & breakdown ----------
+  function calcMenu(){
+    renderLines();
+    renderPkg();
+
+    const divideByFour = $('divideByFour').checked;
+    const cupsInput = $('cupsPerPint');
+    if (divideByFour){
+      cupsInput.value = 4;
+      cupsInput.disabled = true;
+    } else {
+      cupsInput.disabled = false;
+    }
+
+    const materialCost = lines.reduce((sum,l) => sum + lineCost(l), 0);
+    const packagingCost = pkgItems.reduce((sum,i) => sum + (i.price||0), 0);
+
+    $('materialSubtotal').textContent = 'รวมต้นทุนวัตถุดิบ: ' + fmt(materialCost) + ' ฿'
+      + (divideByFour ? '  (÷4 = ' + fmt(materialCost/4) + ' ฿)' : '');
+    $('pkgSubtotal').textContent = 'รวมต้นทุนบรรจุภัณฑ์: ' + fmt(packagingCost) + ' ฿'
+      + (divideByFour ? '  (÷4 = ' + fmt(packagingCost/4) + ' ฿)' : '');
+
+    const totalYield = parseFloat($('totalYieldMl').value) || 0;
+    const mlPerPint = parseFloat($('mlPerPint').value) || 473;
+    const pints = totalYield > 0 ? totalYield / mlPerPint : 0;
+    const yieldMissing = totalYield <= 0;
+    const materialCostPerPint = pints > 0 ? materialCost / pints : 0;
+
+    $('yieldWarning').classList.toggle('show', yieldMissing);
+
+    const sellPrice = parseFloat($('sellPrice').value) || 0;
+    const platformName = $('sellPlatform').value;
+    const platform = platforms.find(p => p.name === platformName);
+    const commissionPct = platform ? platform.pct : 0;
+    const commissionAmount = sellPrice * commissionPct / 100;
+
+    const totalCostPerPint = materialCostPerPint + packagingCost + commissionAmount;
+    const profitPerPint = sellPrice - totalCostPerPint;
+    const profitPct = sellPrice > 0 ? (profitPerPint / sellPrice) * 100 : 0;
+
+    const pctOf = (v) => sellPrice > 0 ? (v / sellPrice) * 100 : 0;
+    const materialPct = pctOf(materialCostPerPint);
+    const packagingPct = pctOf(packagingCost);
+    const commissionPctOfPrice = pctOf(commissionAmount);
+    const profitPctClamped = sellPrice > 0 ? Math.max(0, profitPct) : 0;
+
+    // stacked bar
+    const bar = $('breakdownBar');
+    bar.innerHTML = "";
+    if (sellPrice > 0){
+      [
+        ['material', materialPct],
+        ['packaging', packagingPct],
+        ['commission', commissionPctOfPrice],
+        ['profit', Math.max(0, profitPct)],
+      ].forEach(([cls, pct]) => {
+        const seg = document.createElement('div');
+        seg.className = 'bar-seg ' + cls;
+        seg.style.width = Math.max(0, pct) + '%';
+        bar.appendChild(seg);
+      });
+    } else {
+      bar.style.opacity = '0.4';
+    }
+
+    // breakdown list
+    const listEl = $('breakdownList');
+    listEl.innerHTML = "";
+    const rows = [
+      ['material', yieldMissing ? 'ต้นทุนวัตถุดิบ (ยังไม่กรอกปริมาณ)' : 'ต้นทุนวัตถุดิบ', materialCostPerPint, materialPct],
+      ['packaging', 'ต้นทุนบรรจุภัณฑ์', packagingCost, packagingPct],
+      ['commission', 'ค่าคอมมิชชั่น (' + commissionPct + '%)', commissionAmount, commissionPctOfPrice],
+      ['profit', 'กำไรสุทธิ', profitPerPint, profitPct],
+    ];
+    rows.forEach(([cls, label, val, pct]) => {
+      const row = document.createElement('div');
+      row.className = 'bd-row' + (cls === 'material' && yieldMissing ? ' warn' : '');
+      const dot = document.createElement('div');
+      dot.className = 'bd-dot ' + cls;
+      const labelDiv = document.createElement('div');
+      labelDiv.textContent = label;
+      const valDiv = document.createElement('div');
+      valDiv.className = 'bd-val';
+      valDiv.textContent = fmt(val) + ' ฿';
+      const pctDiv = document.createElement('div');
+      pctDiv.className = 'bd-pct';
+      pctDiv.textContent = sellPrice > 0 ? fmt(pct, 1) + '%' : '—';
+      row.appendChild(dot); row.appendChild(labelDiv); row.appendChild(valDiv); row.appendChild(pctDiv);
+      listEl.appendChild(row);
+    });
+
+    $('resTotalCostPint').textContent = fmt(totalCostPerPint) + " ฿";
+    $('resProfitPint').textContent = fmt(profitPerPint) + " ฿";
+    $('resProfitPct').textContent = (sellPrice > 0 ? fmt(profitPct, 1) : '0.0') + "%";
+
+    const cupsPerPint = parseFloat($('cupsPerPint').value) || 0;
+    const costPerCup = cupsPerPint > 0 ? totalCostPerPint / cupsPerPint : 0;
+    const sellPerCup = cupsPerPint > 0 ? sellPrice / cupsPerPint : 0;
+    const profitPerCup = cupsPerPint > 0 ? profitPerPint / cupsPerPint : 0;
+    $('resCostPerCup').textContent = fmt(costPerCup) + " ฿";
+    $('resSellPerCup').textContent = fmt(sellPerCup) + " ฿";
+    $('resProfitPerCup').textContent = fmt(profitPerCup) + " ฿";
+
+    scheduleAutoSync();
+  }
+  $('totalYieldMl').addEventListener('input', calcMenu);
+  $('mlPerPint').addEventListener('input', calcMenu);
+  $('cupsPerPint').addEventListener('input', calcMenu);
+  $('divideByFour').addEventListener('change', calcMenu);
+
+  $('printBtn').addEventListener('click', () => window.print());
+
+  // ---------- dark mode ----------
+  const themeBtn = $('themeToggle');
+  function applyTheme(dark){
+    document.body.classList.toggle('dark', dark);
+    themeBtn.textContent = dark ? '☀️' : '🌙';
+    try { localStorage.setItem('icecream_theme', dark ? 'dark' : 'light'); } catch(e){}
+  }
+  themeBtn.addEventListener('click', () => {
+    applyTheme(!document.body.classList.contains('dark'));
+  });
+  (function initTheme(){
+    let saved = null;
+    try { saved = localStorage.getItem('icecream_theme'); } catch(e){}
+    if (saved === 'dark') applyTheme(true);
+    else if (saved === 'light') applyTheme(false);
+    else {
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      applyTheme(prefersDark);
+    }
+  })();
+
+  // ---------- menu library ----------
+  function computeMenuCost(m){
+    let materialCost = 0;
+    m.lines.forEach(l => materialCost += lineCost(l));
+    const pints = m.totalYieldMl > 0 ? m.totalYieldMl / (m.mlPerPint || 473) : 0;
+    const materialPerPint = pints > 0 ? materialCost / pints : 0;
+    const packagingCost = (m.pkgItems || []).reduce((s,i) => s + (i.price||0), 0);
+    const platform = platforms.find(p => p.name === m.platformName);
+    const commissionAmount = (m.sellPrice || 0) * ((platform ? platform.pct : 0) / 100);
+    return materialPerPint + packagingCost + commissionAmount;
+  }
+
+  function computeMenuBase(m){
+    // material cost only (no packaging, no commission) — packaging is now a toggle per channel
+    let materialCost = 0;
+    m.lines.forEach(l => materialCost += lineCost(l));
+    const pints = m.totalYieldMl > 0 ? m.totalYieldMl / (m.mlPerPint || 473) : 0;
+    const materialPerPint = pints > 0 ? materialCost / pints : 0;
+    const cupsPerPint = m.cupsPerPint > 0 ? m.cupsPerPint : 4; // ค่าเริ่มต้น: 1 ไพน์ขายได้ 4 ถ้วย
+    const materialPerCup = materialPerPint / cupsPerPint;
+    // suggested packaging defaults, pulled from the itemized packaging list in the menu tab
+    const pkgListTotal = (m.pkgItems || []).reduce((s,i) => s + (i.price||0), 0);
+    const pkgListPerCup = pkgListTotal / cupsPerPint;
+    return { materialPerPint, materialPerCup, cupsPerPint, pkgListTotal, pkgListPerCup };
+  }
+
+  function computeChannel(storePrice, appPrice, baseCost, commissionOn, platform){
+    // Store: sell at storePrice directly, no commission.
+    const storeProfit = storePrice - baseCost;
+    const storeProfitPct = storePrice > 0 ? (storeProfit / storePrice) * 100 : 0;
+
+    // App: sell at an INDEPENDENT appPrice; platform deducts its GP% straight off that price.
+    const pct = (commissionOn && platform) ? (platform.pct || 0) : 0;
+    const appCommissionAmt = appPrice * pct / 100;
+    const appNetProceeds = appPrice - appCommissionAmt;
+    const appProfit = appNetProceeds - baseCost;
+    const appProfitPct = appPrice > 0 ? (appProfit / appPrice) * 100 : 0;
+
+    return {
+      storePrice, appPrice, baseCost, pct,
+      storeProfit, storeProfitPct,
+      appCommissionAmt, appProfit, appProfitPct,
+    };
+  }
+
+  function computeMenuFull(m){
+    const base = computeMenuBase(m);
+
+    // ---- pint channel ----
+    const pintPkgOn = m.pintPkgOn !== false; // default ON (backward compatible)
+    const pintPkgPrice = (m.pintPkgPrice !== undefined && m.pintPkgPrice !== null) ? m.pintPkgPrice : base.pkgListTotal;
+    const pintPkgAmt = pintPkgOn ? pintPkgPrice : 0;
+    const pintPlatform = platforms.find(p => p.name === m.platformName);
+    const pintCommissionOn = m.pintCommissionOn === true; // default OFF — must opt in
+    const pintBaseCost = base.materialPerPint + pintPkgAmt;
+    const pintCh = computeChannel(m.sellPrice || 0, m.pintAppSellPrice || 0, pintBaseCost, pintCommissionOn, pintPlatform);
+
+    // ---- cup channel ----
+    const cupPkgOn = m.cupPkgOn !== false; // default ON (backward compatible)
+    const cupPkgPrice = (m.cupPkgPrice !== undefined && m.cupPkgPrice !== null) ? m.cupPkgPrice : base.pkgListPerCup;
+    const cupPkgAmt = cupPkgOn ? cupPkgPrice : 0;
+    const cupPlatform = platforms.find(p => p.name === m.cupPlatformName);
+    const cupCommissionOn = m.cupCommissionOn === true; // default OFF
+    const cupBaseCost = base.materialPerCup + cupPkgAmt;
+    const cupCh = computeChannel(m.cupSellPrice || 0, m.cupAppSellPrice || 0, cupBaseCost, cupCommissionOn, cupPlatform);
+
+    return {
+      ...base,
+      pintPkgOn, pintPkgPrice, pintPkgAmt, pintPlatform, pintCommissionOn, pintBaseCost,
+      pintCommissionPct: pintCh.pct,
+      pintStorePriceVal: pintCh.storePrice, pintStoreProfit: pintCh.storeProfit, pintStoreProfitPct: pintCh.storeProfitPct,
+      pintAppPriceVal: pintCh.appPrice, pintAppCommissionAmt: pintCh.appCommissionAmt,
+      pintAppProfit: pintCh.appProfit, pintAppProfitPct: pintCh.appProfitPct,
+      // legacy aliases (kept for anything still reading them)
+      pintSell: pintCh.storePrice, pintTotalCost: pintBaseCost, pintProfit: pintCh.storeProfit, pintProfitPct: pintCh.storeProfitPct,
+
+      cupPkgOn, cupPkgPrice, cupPkgAmt, cupPlatform, cupCommissionOn, cupBaseCost,
+      cupCommissionPct: cupCh.pct,
+      cupStorePriceVal: cupCh.storePrice, cupStoreProfit: cupCh.storeProfit, cupStoreProfitPct: cupCh.storeProfitPct,
+      cupAppPriceVal: cupCh.appPrice, cupAppCommissionAmt: cupCh.appCommissionAmt,
+      cupAppProfit: cupCh.appProfit, cupAppProfitPct: cupCh.appProfitPct,
+      cupSell: cupCh.storePrice, cupTotalCost: cupBaseCost, cupProfit: cupCh.storeProfit, cupProfitPct: cupCh.storeProfitPct,
+
+      totalCostPerPint: pintBaseCost, sellPrice: pintCh.storePrice,
+      profit: pintCh.storeProfit, profitPct: pintCh.storeProfitPct, costPerCup: cupBaseCost,
+    };
+  }
+
+  function loadMenuIntoEditor(name){
+    const m = menus[name];
+    if (!m) return;
+    $('menuName').value = name;
+    lines = JSON.parse(JSON.stringify(m.lines));
+    pkgItems = JSON.parse(JSON.stringify(m.pkgItems || []));
+    $('totalYieldMl').value = m.totalYieldMl || '';
+    $('mlPerPint').value = m.mlPerPint || 473;
+    $('sellPrice').value = m.sellPrice || '';
+    $('cupsPerPint').value = m.cupsPerPint || '';
+    $('divideByFour').checked = !!m.divideByFour;
+    if (m.platformName && platforms.some(p=>p.name===m.platformName)){
+      $('sellPlatform').value = m.platformName;
+    }
+    renderLines(); renderPkg(); calcMenu();
+  }
+
+  function renderMenuLib(){
+    const list = $('menuLibList');
+    list.innerHTML = "";
+    const names = Object.keys(menus);
+    if (names.length === 0){
+      const empty = document.createElement('div');
+      empty.className = 'hint';
+      empty.textContent = 'ยังไม่มีเมนูที่บันทึกไว้';
+      list.appendChild(empty);
+      renderSummaryTab();
+      if (typeof renderRecipeList === 'function') renderRecipeList();
+      return;
+    }
+    names.forEach(name => {
+      const m = menus[name];
+      const row = document.createElement('div');
+      row.className = 'lib-row';
+
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'lib-name';
+      nameDiv.textContent = name;
+
+      const costDiv = document.createElement('div');
+      costDiv.className = 'lib-cost';
+      costDiv.textContent = fmt(computeMenuCost(m)) + ' ฿/ไพน์';
+
+      const loadBtn = document.createElement('button');
+      loadBtn.className = 'lib-btn';
+      loadBtn.textContent = 'โหลด';
+      loadBtn.addEventListener('click', () => loadMenuIntoEditor(name));
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'lib-btn danger';
+      delBtn.textContent = 'ลบ';
+      delBtn.addEventListener('click', () => {
+        delete menus[name];
+        renderMenuLib();
+        scheduleAutoSync();
+      });
+
+      row.appendChild(nameDiv);
+      row.appendChild(costDiv);
+      row.appendChild(loadBtn);
+      row.appendChild(delBtn);
+      list.appendChild(row);
+    });
+    renderSummaryTab();
+    if (typeof renderRecipeList === 'function') renderRecipeList();
+  }
+
+  $('saveMenuBtn').addEventListener('click', () => {
+    const name = $('menuName').value.trim();
+    if (!name){ $('menuName').focus(); return; }
+    menus[name] = {
+      lines: JSON.parse(JSON.stringify(lines)),
+      pkgItems: JSON.parse(JSON.stringify(pkgItems)),
+      totalYieldMl: parseFloat($('totalYieldMl').value) || 0,
+      mlPerPint: parseFloat($('mlPerPint').value) || 473,
+      sellPrice: parseFloat($('sellPrice').value) || 0,
+      platformName: $('sellPlatform').value || '',
+      cupsPerPint: parseFloat($('cupsPerPint').value) || 0,
+      divideByFour: $('divideByFour').checked,
+    };
+    renderMenuLib();
+    scheduleAutoSync();
+  });
+
+  // ---------- GitHub Gist sync ----------
+  const GIST_FILENAME = 'icecream-cost-data.json';
+  const syncToggle = $('syncToggle');
+  const syncPanel = $('syncPanel');
+  const tokenInput = $('ghToken');
+  const gistIdInput = $('gistId');
+  const statusEl = $('syncStatus');
+  const autoSyncToggle = $('autoSyncToggle');
+
+  syncToggle.addEventListener('click', () => syncPanel.classList.toggle('open'));
+
+  let suppressAutoSync = false;
+
+  try {
+    const savedToken = localStorage.getItem('icecream_gh_token');
+    const savedGist = localStorage.getItem('icecream_gist_id');
+    const savedAuto = localStorage.getItem('icecream_autosync');
+    if (savedToken) tokenInput.value = savedToken;
+    if (savedGist) gistIdInput.value = savedGist;
+    if (savedAuto === '1') autoSyncToggle.checked = true;
+  } catch(e){ /* localStorage unavailable */ }
+
+  function setStatus(msg, kind){
+    statusEl.textContent = msg;
+    statusEl.className = 'sync-status' + (kind ? ' ' + kind : '');
+  }
+
+  function collectAppData(){
+    return { prices, platforms, menus, salesLog };
+  }
+  function applyAppData(data){
+    suppressAutoSync = true;
+    if (Array.isArray(data.prices)) prices = data.prices;
+    if (Array.isArray(data.platforms)) platforms = data.platforms;
+    if (data.menus && typeof data.menus === 'object') menus = data.menus;
+    if (Array.isArray(data.salesLog)) salesLog = data.salesLog;
+    renderPrices(); renderIngSelect(); renderPlatformList(); renderPlatformSelect(); renderMenuLib(); calcMenu();
+    renderPosGrid(); renderStockPanel(); renderDashboard();
+    suppressAutoSync = false;
+  }
+
+  async function saveToGist(isAuto){
+    const token = tokenInput.value.trim();
+    if (!token){ if (!isAuto) setStatus('กรุณาใส่ GitHub Token ก่อน', 'err'); return; }
+    let gistId = gistIdInput.value.trim();
+    const payload = { files: { [GIST_FILENAME]: { content: JSON.stringify(collectAppData(), null, 2) } } };
+    setStatus(isAuto ? 'ออโต้ซิงค์: กำลังบันทึก...' : 'กำลังบันทึก...');
+    try {
+      let res;
+      if (gistId){
+        res = await fetch('https://api.github.com/gists/' + gistId, {
+          method: 'PATCH',
+          headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        res = await fetch('https://api.github.com/gists', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' },
+          body: JSON.stringify({ description: 'Ice cream cost calculator data', public: false, ...payload })
+        });
+      }
+      if (!res.ok){
+        const errBody = await res.text();
+        throw new Error('HTTP ' + res.status + ' ' + errBody.slice(0,140));
+      }
+      const data = await res.json();
+      if (!gistId){
+        gistId = data.id;
+        gistIdInput.value = gistId;
+      }
+      try {
+        localStorage.setItem('icecream_gh_token', token);
+        localStorage.setItem('icecream_gist_id', gistId);
+      } catch(e){}
+      setStatus((isAuto ? 'ออโต้ซิงค์: บันทึกอัตโนมัติสำเร็จ ' : 'บันทึกสำเร็จ ') + new Date().toLocaleTimeString('th-TH'), 'ok');
+    } catch (err){
+      setStatus((isAuto ? 'ออโต้ซิงค์ล้มเหลว: ' : 'บันทึกไม่สำเร็จ: ') + err.message, 'err');
+    }
+  }
+
+  async function loadFromGist(){
+    const token = tokenInput.value.trim();
+    const gistId = gistIdInput.value.trim();
+    if (!token || !gistId){ setStatus('กรุณาใส่ Token และ Gist ID ก่อน', 'err'); return; }
+    setStatus('กำลังโหลด...');
+    try {
+      const res = await fetch('https://api.github.com/gists/' + gistId, {
+        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
+      });
+      if (!res.ok){
+        const errBody = await res.text();
+        throw new Error('HTTP ' + res.status + ' ' + errBody.slice(0,140));
+      }
+      const data = await res.json();
+      const file = data.files[GIST_FILENAME];
+      if (!file){ throw new Error('ไม่พบไฟล์ข้อมูลใน Gist นี้'); }
+      const parsed = JSON.parse(file.content);
+      applyAppData(parsed);
+      try {
+        localStorage.setItem('icecream_gh_token', token);
+        localStorage.setItem('icecream_gist_id', gistId);
+      } catch(e){}
+      setStatus('โหลดสำเร็จ ' + new Date().toLocaleTimeString('th-TH'), 'ok');
+    } catch (err){
+      setStatus('โหลดไม่สำเร็จ: ' + err.message, 'err');
+    }
+  }
+
+  $('saveGistBtn').addEventListener('click', () => saveToGist(false));
+  $('loadGistBtn').addEventListener('click', loadFromGist);
+
+  // ---------- auto-sync (debounced) ----------
+  let autoSyncTimer = null;
+  function scheduleAutoSync(){
+    if (suppressAutoSync) return;
+    if (!autoSyncToggle.checked) return;
+    if (!tokenInput.value.trim()) return;
+    clearTimeout(autoSyncTimer);
+    setStatus('ออโต้ซิงค์: รอบันทึกใน 2-3 วินาที...');
+    autoSyncTimer = setTimeout(() => saveToGist(true), 2500);
+  }
+  autoSyncToggle.addEventListener('change', () => {
+    try { localStorage.setItem('icecream_autosync', autoSyncToggle.checked ? '1' : '0'); } catch(e){}
+    if (autoSyncToggle.checked) scheduleAutoSync();
+  });
+
+  // ---------- POS ----------
+  function posUnitPrice(m, unit){
+    if (unit === 'pint') return posChannel === 'store' ? (m.sellPrice || 0) : (m.pintAppSellPrice || 0);
+    return posChannel === 'store' ? (m.cupSellPrice || 0) : (m.cupAppSellPrice || 0);
+  }
+  function posPintsForUnit(m, unit, qty){
+    const cupsPerPint = m.cupsPerPint > 0 ? m.cupsPerPint : 4;
+    return unit === 'pint' ? qty : qty / cupsPerPint;
+  }
+
+  function posCommissionPct(m, unit){
+    if (posChannel !== 'app') return 0;
+    const platformField = unit === 'pint' ? 'platformName' : 'cupPlatformName';
+    const commissionOnField = unit === 'pint' ? 'pintCommissionOn' : 'cupCommissionOn';
+    if (!m[commissionOnField]) return 0;
+    const platform = platforms.find(p => p.name === m[platformField]);
+    return platform ? (platform.pct || 0) : 0;
+  }
+
+  function renderPosUnitGrid(gridId, unit){
+    const grid = $(gridId);
+    if (!grid) return;
+    grid.innerHTML = "";
+    const names = Object.keys(menus);
+    if (names.length === 0){
+      grid.innerHTML = '<div class="hint">ยังไม่มีเมนูที่บันทึกไว้ — ไปสร้างเมนูในแท็บ "🍦 คำนวณต้นทุนเมนู" ก่อนครับ</div>';
+      return;
+    }
+    let any = false;
+    names.forEach(name => {
+      const m = menus[name];
+      const stock = m.stock || 0;
+      const cupsPerPint = m.cupsPerPint > 0 ? m.cupsPerPint : 4;
+      const price = posUnitPrice(m, unit);
+      const pct = posCommissionPct(m, unit);
+      const needed = unit === 'pint' ? 1 : (1 / cupsPerPint);
+
+      const card = document.createElement('div');
+      card.className = 'pos-product';
+      card.innerHTML = `
+        <div class="pname">${escapeHtmlCalc(name)}</div>
+        <div class="pstock ${stock <= 0 ? 'low' : ''}">คงเหลือ ${fmt(stock,1)} ไพน์</div>
+      `;
+      const btn = document.createElement('button');
+      btn.className = 'pos-unit-btn';
+      const gpNote = (posChannel === 'app' && pct > 0) ? ` <span style="color:var(--ink-soft);">(หัก GP ${fmt(pct,1)}%)</span>` : '';
+      btn.innerHTML = `<span>+ ${unit === 'pint' ? 'ไพน์' : 'ถ้วย'}${gpNote}</span><b>${fmt(price)} ฿</b>`;
+      btn.disabled = price <= 0 || stock < needed;
+      btn.addEventListener('click', () => addToCart(name, unit));
+      card.appendChild(btn);
+      grid.appendChild(card);
+      any = true;
+    });
+    if (!any) grid.innerHTML = '<div class="hint">ไม่มีเมนู</div>';
+  }
+
+  function renderPosGrid(){
+    renderPosUnitGrid('posGridPint', 'pint');
+    renderPosUnitGrid('posGridCup', 'cup');
+  }
+
+  function addToCart(menuName, unit){
+    const m = menus[menuName];
+    if (!m) return;
+    const price = posUnitPrice(m, unit);
+    const pct = posCommissionPct(m, unit);
+    const existing = cart.find(c => c.menuName === menuName && c.unit === unit && c.channel === posChannel);
+    if (existing) existing.qty += 1;
+    else cart.push({ menuName, unit, qty: 1, unitPrice: price, channel: posChannel, commissionPct: pct });
+    renderPosCart();
+  }
+
+  function renderPosCart(){
+    const list = $('posCartLines');
+    if (!list) return;
+    list.innerHTML = "";
+    $('posCartCount').textContent = cart.length;
+    let total = 0;
+    cart.forEach((line, idx) => {
+      const lineTotal = line.unitPrice * line.qty;
+      total += lineTotal;
+      const row = document.createElement('div');
+      row.className = 'cart-line';
+
+      const nameDiv = document.createElement('div');
+      const gpNote = line.commissionPct > 0 ? ` · หัก GP ${fmt(line.commissionPct,1)}%` : '';
+      nameDiv.innerHTML = `
+        <div class="cl-name">${escapeHtmlCalc(line.menuName)}</div>
+        <div class="cl-unit">${line.unit === 'pint' ? 'ไพน์' : 'ถ้วย'} · ${line.channel === 'store' ? 'หน้าร้าน' : 'แอป'} · ${fmt(line.unitPrice)} ฿/หน่วย${gpNote}</div>
+      `;
+
+      const stepper = document.createElement('div');
+      stepper.className = 'qty-stepper';
+      const minus = document.createElement('button'); minus.textContent = '−';
+      minus.addEventListener('click', () => { line.qty -= 1; if (line.qty <= 0) cart.splice(idx,1); renderPosCart(); });
+      const qtySpan = document.createElement('span'); qtySpan.textContent = line.qty;
+      const plus = document.createElement('button'); plus.textContent = '+';
+      plus.addEventListener('click', () => { line.qty += 1; renderPosCart(); });
+      stepper.appendChild(minus); stepper.appendChild(qtySpan); stepper.appendChild(plus);
+
+      const totalDiv = document.createElement('div');
+      totalDiv.className = 'cl-total';
+      totalDiv.textContent = fmt(lineTotal) + ' ฿';
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'del-btn'; delBtn.innerHTML = '✕';
+      delBtn.addEventListener('click', () => { cart.splice(idx,1); renderPosCart(); });
+
+      row.appendChild(nameDiv);
+      row.appendChild(stepper);
+      row.appendChild(totalDiv);
+      row.appendChild(delBtn);
+      list.appendChild(row);
+    });
+    $('posCartTotal').textContent = fmt(total) + ' ฿';
+  }
+
+  function setPosStatus(msg, kind){
+    const el = $('posStatus');
+    el.textContent = msg;
+    el.className = 'sync-status' + (kind ? ' ' + kind : '');
+  }
+
+  function checkoutSale(){
+    if (cart.length === 0){ setPosStatus('ตะกร้ายังว่างอยู่', 'err'); return; }
+    for (const line of cart){
+      const m = menus[line.menuName];
+      if (!m) continue;
+      const pintsNeeded = posPintsForUnit(m, line.unit, line.qty);
+      if ((m.stock || 0) < pintsNeeded - 0.0001){
+        setPosStatus('สต็อก "' + line.menuName + '" ไม่พอ (เหลือ ' + fmt(m.stock||0,1) + ' ไพน์)', 'err');
+        return;
+      }
+    }
+    let total = 0, netTotal = 0;
+    const items = cart.map(line => {
+      const m = menus[line.menuName];
+      const pintsNeeded = posPintsForUnit(m, line.unit, line.qty);
+      m.stock = Math.max(0, (m.stock || 0) - pintsNeeded);
+      const lineTotal = line.unitPrice * line.qty;
+      const pct = line.commissionPct || 0;
+      const commissionAmt = lineTotal * pct / 100;
+      const netLineTotal = lineTotal - commissionAmt;
+      total += lineTotal;
+      netTotal += netLineTotal;
+      return { menuName: line.menuName, unit: line.unit, qty: line.qty, unitPrice: line.unitPrice, channel: line.channel, commissionPct: pct, lineTotal, commissionAmt, netLineTotal };
+    });
+    salesLog.push({ id: 'sale_' + Date.now(), ts: Date.now(), channel: posChannel, items, total, netTotal });
+    cart = [];
+    renderPosCart();
+    renderPosGrid();
+    renderStockPanel();
+    persistChange();
+    setPosStatus('บันทึกการขายแล้ว ✓ รวม ' + fmt(total) + ' ฿', 'ok');
+  }
+
+  $('posChannelStore').addEventListener('click', () => {
+    posChannel = 'store';
+    $('posChannelStore').classList.add('active');
+    $('posChannelApp').classList.remove('active');
+    renderPosGrid();
+  });
+  $('posChannelApp').addEventListener('click', () => {
+    posChannel = 'app';
+    $('posChannelApp').classList.add('active');
+    $('posChannelStore').classList.remove('active');
+    renderPosGrid();
+  });
+  $('posCheckoutBtn').addEventListener('click', checkoutSale);
+
+  $('posStockToggleBtn').addEventListener('click', () => {
+    const panel = $('posStockPanel');
+    const open = panel.style.display !== 'none';
+    panel.style.display = open ? 'none' : 'block';
+    if (!open) renderStockPanel();
+  });
+
+  function renderStockPanel(){
+    const list = $('posStockList');
+    if (!list) return;
+    list.innerHTML = "";
+    const names = Object.keys(menus);
+    if (names.length === 0){
+      list.innerHTML = '<div class="hint">ยังไม่มีเมนู</div>';
+      return;
+    }
+    names.forEach(name => {
+      const m = menus[name];
+      const row = document.createElement('div');
+      row.className = 'stock-row';
+      const nameDiv = document.createElement('div');
+      nameDiv.textContent = name;
+      const input = document.createElement('input');
+      input.type = 'number'; input.step = 'any'; input.value = m.stock || 0;
+      input.addEventListener('input', e => {
+        m.stock = parseFloat(e.target.value) || 0;
+        renderPosGrid();
+        persistChange();
+      });
+      row.appendChild(nameDiv);
+      row.appendChild(input);
+      list.appendChild(row);
+    });
+  }
+
+  // ---------- Dashboard ----------
+  document.querySelectorAll('#dashFilterRow .dash-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#dashFilterRow .dash-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      dashRange = btn.dataset.range;
+      renderDashboard();
+    });
+  });
+
+  function filterSalesByRange(range){
+    const now = Date.now();
+    let cutoff = 0;
+    if (range === 'today'){
+      const d = new Date(); d.setHours(0,0,0,0);
+      cutoff = d.getTime();
+    } else if (range === '7d'){
+      cutoff = now - 7*24*60*60*1000;
+    } else if (range === '30d'){
+      cutoff = now - 30*24*60*60*1000;
+    } else {
+      cutoff = 0;
+    }
+    return salesLog.filter(s => s.ts >= cutoff);
+  }
+
+  function renderDashboard(){
+    const summaryEl = $('dashSummary');
+    if (!summaryEl) return;
+    const topMenusEl = $('dashTopMenus');
+    const hourlyEl = $('dashHourly');
+    const recentEl = $('dashRecent');
+
+    const sales = filterSalesByRange(dashRange);
+
+    let totalRevenue = 0, totalNet = 0, totalUnits = 0;
+    let storeRevenue = 0, appRevenue = 0, appNet = 0, appGpDeducted = 0;
+    const menuAgg = {};
+    const hourAgg = new Array(24).fill(0);
+
+    sales.forEach(s => {
+      totalRevenue += s.total;
+      const hr = new Date(s.ts).getHours();
+      hourAgg[hr] += s.total;
+      s.items.forEach(it => {
+        totalUnits += it.qty;
+        const pct = it.commissionPct || 0;
+        const netLineTotal = (it.netLineTotal !== undefined) ? it.netLineTotal : it.lineTotal - (it.lineTotal * pct / 100);
+        const commissionAmt = it.lineTotal - netLineTotal;
+        totalNet += netLineTotal;
+        if (it.channel === 'app'){
+          appRevenue += it.lineTotal;
+          appNet += netLineTotal;
+          appGpDeducted += commissionAmt;
+        } else {
+          storeRevenue += it.lineTotal;
+        }
+        if (!menuAgg[it.menuName]) menuAgg[it.menuName] = { qty: 0, revenue: 0 };
+        menuAgg[it.menuName].qty += it.qty;
+        menuAgg[it.menuName].revenue += it.lineTotal;
+      });
+    });
+
+    summaryEl.innerHTML = `
+      <div class="dash-card"><div class="label">ยอดขายรวม (ก่อนหัก GP)</div><div class="value">${fmt(totalRevenue)} ฿</div></div>
+      <div class="dash-card"><div class="label">ยอดขายสุทธิ (หัก GP แล้ว)</div><div class="value" style="color:var(--sage-deep);">${fmt(totalNet)} ฿</div></div>
+      <div class="dash-card"><div class="label">จำนวนออเดอร์</div><div class="value">${sales.length}</div></div>
+      <div class="dash-card"><div class="label">จำนวนหน่วยที่ขาย</div><div class="value">${fmt(totalUnits,1)}</div></div>
+    `;
+    if (appRevenue > 0){
+      $('dashBreakdown').innerHTML = `🏪 หน้าร้าน: ${fmt(storeRevenue)} ฿ (ไม่มีค่าคอม) &nbsp;·&nbsp; 📱 แอป: ${fmt(appRevenue)} ฿ ก่อนหัก GP → เหลือ ${fmt(appNet)} ฿ หลังหัก GP (หักไป ${fmt(appGpDeducted)} ฿)`;
+    } else {
+      $('dashBreakdown').innerHTML = '';
+    }
+
+    const topList = Object.entries(menuAgg).sort((a,b) => b[1].revenue - a[1].revenue).slice(0, 8);
+    topMenusEl.innerHTML = "";
+    if (topList.length === 0){
+      topMenusEl.innerHTML = '<div class="hint">ยังไม่มีข้อมูลการขายในช่วงนี้</div>';
+    } else {
+      const maxRevenue = topList[0][1].revenue || 1;
+      topList.forEach(([name, agg]) => {
+        const pct = (agg.revenue / maxRevenue) * 100;
+        const row = document.createElement('div');
+        row.className = 'rank-row';
+        row.innerHTML = `
+          <div class="rank-label"><span>${escapeHtmlCalc(name)} <span style="color:var(--ink-soft); font-size:11px;">(${fmt(agg.qty,1)} หน่วย)</span></span><b>${fmt(agg.revenue)} ฿</b></div>
+          <div class="rank-track"><div class="rank-fill" style="width:${pct}%;"></div></div>
+        `;
+        topMenusEl.appendChild(row);
+      });
+    }
+
+    hourlyEl.innerHTML = "";
+    const maxHour = Math.max(...hourAgg, 1);
+    const peakHour = hourAgg.indexOf(Math.max(...hourAgg));
+    const barsDiv = document.createElement('div');
+    barsDiv.className = 'hour-grid';
+    const labelsDiv = document.createElement('div');
+    labelsDiv.className = 'hour-labels';
+    hourAgg.forEach((val, hr) => {
+      const bar = document.createElement('div');
+      bar.className = 'hour-bar' + (val > 0 && hr === peakHour ? ' peak' : '');
+      bar.style.height = Math.max(2, (val / maxHour) * 100) + '%';
+      bar.title = hr + ':00 — ' + fmt(val) + ' ฿';
+      barsDiv.appendChild(bar);
+      const lab = document.createElement('span');
+      lab.textContent = (hr % 3 === 0) ? hr : '';
+      labelsDiv.appendChild(lab);
+    });
+    hourlyEl.appendChild(barsDiv);
+    hourlyEl.appendChild(labelsDiv);
+    if (totalRevenue > 0){
+      const peakNote = document.createElement('div');
+      peakNote.className = 'hint';
+      peakNote.style.marginTop = '8px';
+      peakNote.textContent = 'ช่วงเวลาขายดีที่สุด: ' + peakHour + ':00–' + (peakHour+1) + ':00 (' + fmt(hourAgg[peakHour]) + ' ฿)';
+      hourlyEl.appendChild(peakNote);
+    }
+
+    recentEl.innerHTML = "";
+    const recent = [...sales].sort((a,b) => b.ts - a.ts).slice(0, 15);
+    if (recent.length === 0){
+      recentEl.innerHTML = '<div class="hint">ยังไม่มีรายการขาย</div>';
+    } else {
+      recent.forEach(s => {
+        const d = new Date(s.ts);
+        const timeStr = d.toLocaleDateString('th-TH') + ' ' + d.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'});
+        const itemsStr = s.items.map(it => it.menuName + ' x' + fmt(it.qty,1)).join(', ');
+        const row = document.createElement('div');
+        row.className = 'recent-row';
+        row.innerHTML = `
+          <div>
+            <div>${timeStr} · ${s.channel === 'store' ? '🏪 หน้าร้าน' : '📱 แอป'}</div>
+            <div class="rt-items">${escapeHtmlCalc(itemsStr)}</div>
+          </div>
+          <div class="rt-total">${fmt(s.total)} ฿</div>
+        `;
+        recentEl.appendChild(row);
+      });
+    }
+  }
+
+  // ---------- init ----------
+  renderPrices();
+  renderIngSelect();
+  renderLines();
+  renderPkg();
+  renderPlatformList();
+  renderPlatformSelect();
+  renderMenuLib();
+  calcMenu();
+  renderPosGrid();
+  renderStockPanel();
+  renderDashboard();
+
+  // auto-load once if credentials already saved from a previous session
+  (function autoLoad(){
+    try {
+      const t = localStorage.getItem('icecream_gh_token');
+      const g = localStorage.getItem('icecream_gist_id');
+      if (t && g){
+        syncPanel.classList.add('open');
+        loadFromGist();
+      }
+    } catch(e){}
+  })();
+</script>
+</body>
+</html>
